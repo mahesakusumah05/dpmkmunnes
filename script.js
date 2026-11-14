@@ -1,20 +1,20 @@
-const stories = [
+let stories = [
   {
-    title: "Suara Parlemen<br />Adikara.",
+    title: "Suara Parlemen\nAdikara.",
     description:
       "Bekerja bersama untuk menyerap aspirasi, merumuskan kebijakan, dan membangun masa depan Indonesia.",
     image:
       "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=2200&q=85",
   },
   {
-    title: "Membangun kemajuan<br />melalui dialog.",
+    title: "Membangun kemajuan\nmelalui dialog.",
     description:
       "Gagasan dari seluruh penjuru negeri bertemu untuk merumuskan kebijakan yang membawa Indonesia maju.",
     image:
       "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=2200&q=85",
   },
   {
-    title: "Parlemen Adikara terbuka,<br />lebih dekat.",
+    title: "Parlemen Adikara terbuka,\nlebih dekat.",
     description:
       "Kenali kerja DPM KM UNNES dan ikut serta dalam percakapan yang membentuk masa depan Indonesia.",
     image:
@@ -22,7 +22,7 @@ const stories = [
   },
 ];
 
-const quotes = [
+let quotes = [
   {
     text: "“Kebijakan yang baik berawal dari mendengarkan masyarakat yang terdampak.”",
     author: "Suara dari DPM KM UNNES",
@@ -45,7 +45,9 @@ const heroDescription = document.querySelector("#hero-description");
 const heroElement = document.querySelector(".hero");
 const heroImageLayers = [...document.querySelectorAll(".hero-image")];
 const slideCurrent = document.querySelector("#slide-current");
-const heroDots = [...document.querySelectorAll(".hero-dot")];
+let heroDots = [...document.querySelectorAll(".hero-dot")];
+const heroDotsContainer = document.querySelector(".hero-dots");
+const slideTotal = document.querySelector("#slide-total");
 let activeSlide = 0;
 let activeQuote = 0;
 
@@ -66,6 +68,30 @@ const newsTicker = document.querySelector("#latest-news-ticker");
 const archiveNewsGrid = document.querySelector("#archive-news-grid");
 const latestNewsGrid = document.querySelector("#latest-news-grid");
 
+function getContentValue(content, path) {
+  return path.split(".").reduce((value, key) => value?.[key], content);
+}
+
+function setMultilineText(element, value) {
+  const lines = value.split(/\r?\n/);
+  element.replaceChildren();
+  lines.forEach((line, index) => {
+    if (index) element.append(document.createElement("br"));
+    element.append(document.createTextNode(line));
+  });
+}
+
+function safeContentHref(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.protocol !== "https:" && url.origin !== window.location.origin) return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => {
     const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -81,6 +107,121 @@ function safeImageUrl(value) {
     return "";
   }
 }
+
+function youtubeVideoId(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return "";
+    let id = "";
+    if (url.hostname === "youtu.be") {
+      id = url.pathname.slice(1).split("/")[0];
+    } else if (["youtube.com", "www.youtube.com", "m.youtube.com"].includes(url.hostname)) {
+      if (url.pathname === "/watch") id = url.searchParams.get("v") || "";
+      else id = url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})\/?$/)?.[1] || "";
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
+  } catch {
+    return "";
+  }
+}
+
+function applySiteContent(content) {
+  document.querySelectorAll("[data-content-key]").forEach((element) => {
+    const value = getContentValue(content, element.dataset.contentKey);
+    if (typeof value === "string" && value.trim()) {
+      const text = value.trim();
+      if (text.includes("\n")) setMultilineText(element, text);
+      else element.textContent = text;
+    }
+  });
+  document.querySelectorAll("[data-content-href]").forEach((element) => {
+    const value = getContentValue(content, element.dataset.contentHref);
+    const href = safeContentHref(value);
+    if (href) element.setAttribute("href", href);
+  });
+  document.querySelectorAll("[data-content-src]").forEach((element) => {
+    const value = getContentValue(content, element.dataset.contentSrc);
+    const src = safeImageUrl(value);
+    if (src) element.setAttribute("src", src);
+  });
+  document.querySelectorAll("[data-content-alt]").forEach((element) => {
+    const value = getContentValue(content, element.dataset.contentAlt);
+    if (typeof value === "string") element.setAttribute("alt", value.slice(0, 300));
+  });
+
+  const homepage = content.homepage;
+  if (!homepage || typeof homepage !== "object") return;
+
+  const heroSlides = Array.isArray(homepage.heroSlides)
+    ? homepage.heroSlides
+        .filter(
+          (slide) =>
+            slide &&
+            typeof slide.title === "string" &&
+            typeof slide.description === "string" &&
+            safeImageUrl(slide.image),
+        )
+        .slice(0, 10)
+        .map((slide) => ({
+          title: slide.title.trim().slice(0, 200),
+          description: slide.description.trim().slice(0, 1000),
+          image: safeImageUrl(slide.image),
+        }))
+    : [];
+  const quoteItems = Array.isArray(homepage.quotes)
+    ? homepage.quotes
+    : homepage.quotes?.items;
+  const homepageQuotes = Array.isArray(quoteItems)
+    ? quoteItems
+        .filter(
+          (quote) =>
+            quote &&
+            typeof quote.text === "string" &&
+            typeof quote.author === "string" &&
+            typeof quote.role === "string",
+        )
+        .slice(0, 20)
+        .map((quote) => ({
+          text: quote.text.trim().slice(0, 500),
+          author: quote.author.trim().slice(0, 120),
+          role: quote.role.trim().slice(0, 120),
+        }))
+    : [];
+
+  if (heroSlides.length) stories = heroSlides;
+  if (homepageQuotes.length) quotes = homepageQuotes;
+  document.dispatchEvent(
+    new CustomEvent("site-content-loaded", {
+      detail: { heroSlides: stories, quotes },
+    }),
+  );
+
+  const videoUrl = homepage.youtube?.url;
+  const videoId = typeof videoUrl === "string" ? youtubeVideoId(videoUrl) : "";
+  const videoFrame = document.querySelector(".video-embed");
+  if (videoId && videoFrame) {
+    videoFrame.src = `https://www.youtube-nocookie.com/embed/${videoId}`;
+    videoFrame.hidden = false;
+    videoFrame.title =
+      typeof homepage.youtube.title === "string" && homepage.youtube.title.trim()
+        ? homepage.youtube.title.trim().slice(0, 120)
+        : "Video DPM KM UNNES";
+    videoFrame.closest(".video-player")?.classList.add("has-video");
+    document.querySelector(".youtube-section [data-content-key='homepage.youtube.emptyLinkText']")?.setAttribute("hidden", "");
+    document.querySelector(".youtube-section [data-content-key='homepage.youtube.placeholderNote']")?.setAttribute("hidden", "");
+  } else if (videoUrl && !videoId) {
+    console.error("Tautan video YouTube di konten situs tidak valid.");
+  }
+}
+
+fetch("/api/content")
+  .then(async (response) => {
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Konten gagal dimuat (${response.status}).`);
+    if (!result || typeof result !== "object") throw new Error("Respons konten situs tidak valid.");
+    applySiteContent(result);
+  })
+  .catch((error) => console.error("Konten situs tidak dapat dimuat dari backend:", error));
 
 function renderNewsTicker() {
   if (!newsTicker) return;
@@ -377,9 +518,10 @@ if (heroTitle && heroDescription && heroImageLayers.length && slideCurrent) {
     heroElement?.classList.remove("hero-copy-changing");
     void heroTitle.offsetWidth;
     heroElement?.classList.add("hero-copy-changing");
-    heroTitle.innerHTML = story.title;
+    setMultilineText(heroTitle, story.title);
     heroDescription.textContent = story.description;
     slideCurrent.textContent = String(activeSlide + 1).padStart(2, "0");
+    if (slideTotal) slideTotal.textContent = String(stories.length).padStart(2, "0");
     heroDots.forEach((dot, dotIndex) => {
       const active = dotIndex === activeSlide;
       dot.classList.toggle("active", active);
@@ -388,8 +530,24 @@ if (heroTitle && heroDescription && heroImageLayers.length && slideCurrent) {
     scheduleHeroAdvance();
   }
 
-  heroDots.forEach((dot) => {
-    dot.addEventListener("click", () => showSlide(Number(dot.dataset.slide)));
+  heroDotsContainer?.addEventListener("click", (event) => {
+    const dot = event.target.closest(".hero-dot");
+    if (dot && heroDotsContainer.contains(dot)) showSlide(Number(dot.dataset.slide));
+  });
+  document.addEventListener("site-content-loaded", () => {
+    heroDots = stories.map((story, index) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = `hero-dot${index === 0 ? " active" : ""}`;
+      dot.dataset.slide = String(index);
+      dot.setAttribute("aria-label", `Tampilkan berita ${index + 1}`);
+      dot.setAttribute("aria-current", index === 0 ? "true" : "false");
+      return dot;
+    });
+    heroDotsContainer?.replaceChildren(...heroDots);
+    if (slideTotal) slideTotal.textContent = String(stories.length).padStart(2, "0");
+    activeSlide = -1;
+    showSlide(0);
   });
   heroElement?.addEventListener("pointermove", () => {
     if (heroHovered) return;
@@ -486,6 +644,7 @@ if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
   });
   document.addEventListener("visibilitychange", scheduleQuoteAdvance);
   reducedMotionPreference.addEventListener("change", scheduleQuoteAdvance);
+  document.addEventListener("site-content-loaded", () => showQuote(0));
   quoteProgress.classList.add("is-running");
   scheduleQuoteAdvance();
 }

@@ -1,0 +1,61 @@
+{
+  "key": "main",
+  "homepage": {
+    "hero": {
+      "eyebrow": "Parlemen Adikara untuk semua",
+      "link": "about.html",
+      "linkLabel": "Lihat Struktur",
+      "captionLabel": "Informasi terbaru",
+      "captionTitle": "Lihat arsip dan informasi DPM KM UNNES"
+    },
+    "heroSlides": [
+      {
+        "title": "Suara Parlemen\nAdikara.",
+        "description": "Bekerja bersama untuk menyerap aspirasi, merumuskan kebijakan, dan membangun masa depan Indonesia.",
+        "image": "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=2200&q=85"
+      },
+      {
+        "title": "Membangun kemajuan\nmelalui dialog.",
+        "description": "Gagasan dari seluruh penjuru negeri bertemu untuk merumuskan kebijakan yang membawa Indonesia maju.",
+        "image": "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=2200&q=85"
+      },
+      {
+        "title": "Parlemen Adikara terbuka,\nlebih dekat.",
+        "description": "Kenali kerja DPM KM UNNES dan ikut serta dalam percakapan yang membentuk masa depan Indonesia.",
+        "image": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2200&q=85"
+      }
+    ],
+    "quotes": {
+      "sectionLabel": "Suara Parlemen Adikara",
+      "sectionTitle": "DPM KM UNNES\nBicara",
+      "sectionDescription": "Pandangan dan percakapan tentang masa depan Indonesia.",
+      "items": [
+        {
+          "text": "“Kebijakan yang baik berawal dari mendengarkan masyarakat yang terdampak.”",
+          "author": "Suara dari DPM KM UNNES",
+          "role": "Anggota DPM KM UNNES"
+        },
+        {
+          "text": "“Partisipasi publik menjadikan demokrasi lebih terbuka dan tanggap.”",
+          "author": "Suara dari DPM KM UNNES",
+          "role": "Anggota DPM KM UNNES"
+        },
+        {
+          "text": "“Kerja Parlemen Adikara adalah komitmen bersama untuk masa depan yang lebih baik.”",
+          "author": "Suara dari DPM KM UNNES",
+          "role": "Anggota DPM KM UNNES"
+        }
+      ]
+    },
+    "youtube": {
+      "url": "",
+      "sectionLabel": "Video DPM KM UNNES",
+      "sectionTitle": "Kegiatan dalam video",
+      "emptyLinkText": "Tautan YouTube resmi belum ditambahkan",
+      "eyebrow": "Dokumentasi DPM KM UNNES",
+      "title": "Ruang informasi dan dokumentasi kegiatan.",
+      "description": "Area video DPM KM UNNES siap menampilkan dokumentasi. Tautan kanal resmi belum ditambahkan.",
+      "placeholderNote": "Pemutar video dapat dihubungkan setelah video pilihan ditentukan."
+    }
+  }
+}

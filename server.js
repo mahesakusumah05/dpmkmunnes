@@ -28,6 +28,7 @@ app.use(
         "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
         "img-src": ["'self'", "data:", "https:"],
+        "frame-src": ["https://www.youtube-nocookie.com"],
         "connect-src": ["'self'"],
         "form-action": ["'self'"],
         "frame-ancestors": ["'none'"],
@@ -70,8 +71,17 @@ const aspirationSchema = new mongoose.Schema(
 );
 aspirationSchema.index({ submittedAt: -1 });
 
+const siteContentSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, unique: true, default: "main" },
+    homepage: { type: mongoose.Schema.Types.Mixed, default: {} },
+  },
+  { collection: "site_content", versionKey: false },
+);
+
 const News = mongoose.model("News", newsSchema);
 const Aspiration = mongoose.model("Aspiration", aspirationSchema);
+const SiteContent = mongoose.model("SiteContent", siteContentSchema);
 
 function readText(value, maxLength) {
   if (typeof value !== "string") return null;
@@ -108,6 +118,15 @@ app.get("/api/news", async (req, res) => {
       alt: item.alt || "",
     })),
   });
+});
+
+app.get("/api/content", async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: "Layanan basis data sedang tidak tersedia." });
+  }
+
+  const record = await SiteContent.findOne({ key: "main" }).select("homepage -_id").lean();
+  res.json({ homepage: record?.homepage ?? {} });
 });
 
 const aspirationLimiter = rateLimit({

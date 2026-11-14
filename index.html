@@ -92,14 +92,14 @@
         <div class="hero-image" aria-hidden="true"></div>
         <div class="hero-shade"></div>
         <div class="container hero-content">
-          <p class="eyebrow hero-eyebrow"><span></span> Parlemen Adikara untuk semua</p>
+          <p class="eyebrow hero-eyebrow"><span></span><span data-content-key="homepage.hero.eyebrow">Parlemen Adikara untuk semua</span></p>
           <h1 id="hero-title" aria-live="polite" aria-atomic="true">Suara Parlemen<br />Adikara.</h1>
           <p class="hero-description" id="hero-description">
             Bekerja bersama untuk menyerap aspirasi, merumuskan kebijakan, dan membangun masa depan Indonesia.
           </p>
-          <a class="button button-light" href="about.html">Lihat Struktur <span aria-hidden="true">→</span></a>
+          <a class="button button-light" data-content-href="homepage.hero.link" href="about.html"><span data-content-key="homepage.hero.linkLabel">Lihat Struktur</span> <span aria-hidden="true">→</span></a>
           <div class="hero-controls" aria-label="Indikator berita pilihan">
-            <span class="hero-count"><b id="slide-current">01</b> <i></i> 03</span>
+            <span class="hero-count"><b id="slide-current">01</b> <i></i> <span id="slide-total">03</span></span>
             <div class="hero-dots">
               <button type="button" class="hero-dot active" data-slide="0" aria-label="Tampilkan berita 1"></button>
               <button type="button" class="hero-dot" data-slide="1" aria-label="Tampilkan berita 2"></button>
@@ -109,7 +109,7 @@
         </div>
         <a class="hero-caption" href="news.html">
           <span class="caption-icon" aria-hidden="true">↗</span>
-          <span><small>Informasi terbaru</small><strong>Lihat arsip dan informasi DPM KM UNNES</strong></span>
+          <span><small data-content-key="homepage.hero.captionLabel">Informasi terbaru</small><strong data-content-key="homepage.hero.captionTitle">Lihat arsip dan informasi DPM KM UNNES</strong></span>
         </a>
       </section>
 
@@ -117,22 +117,30 @@
         <div class="container">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Video DPM KM UNNES</p>
-              <h2>Kegiatan dalam video</h2>
+              <p class="eyebrow" data-content-key="homepage.youtube.sectionLabel">Video DPM KM UNNES</p>
+              <h2 data-content-key="homepage.youtube.sectionTitle">Kegiatan dalam video</h2>
             </div>
-            <span class="text-link">Tautan YouTube resmi belum ditambahkan</span>
+            <span class="text-link" data-content-key="homepage.youtube.emptyLinkText">Tautan YouTube resmi belum ditambahkan</span>
           </div>
           <div class="video-feature">
-            <div class="video-player" role="img" aria-label="Pratinjau video DPM KM UNNES">
+            <div class="video-player" role="group" aria-label="Pratinjau video DPM KM UNNES">
+              <iframe
+                class="video-embed"
+                title="Video DPM KM UNNES"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+                hidden
+              ></iframe>
               <span class="video-player-top"><span class="youtube-brand"><b>▶</b> YouTube</span><span>Video DPM KM UNNES</span></span>
               <span class="video-play" aria-hidden="true">▶</span>
               <span class="video-player-bottom"><span>▶ &nbsp; 00:00</span><span class="video-progress"><i></i></span><span>⚙ &nbsp; ⛶</span></span>
             </div>
             <div class="video-copy">
-              <p class="eyebrow">Dokumentasi DPM KM UNNES</p>
-              <h3>Ruang informasi dan dokumentasi kegiatan.</h3>
-              <p>Area video DPM KM UNNES siap menampilkan dokumentasi. Tautan kanal resmi belum ditambahkan.</p>
-              <span class="video-placeholder-note">Pemutar video dapat dihubungkan setelah video pilihan ditentukan.</span>
+              <p class="eyebrow" data-content-key="homepage.youtube.eyebrow">Dokumentasi DPM KM UNNES</p>
+              <h3 data-content-key="homepage.youtube.title">Ruang informasi dan dokumentasi kegiatan.</h3>
+              <p data-content-key="homepage.youtube.description">Area video DPM KM UNNES siap menampilkan dokumentasi. Tautan kanal resmi belum ditambahkan.</p>
+              <span class="video-placeholder-note" data-content-key="homepage.youtube.placeholderNote">Pemutar video dapat dihubungkan setelah video pilihan ditentukan.</span>
             </div>
           </div>
         </div>
@@ -187,9 +195,9 @@
       <section class="talks-section" id="about">
         <div class="container talks-layout">
           <div class="talks-heading">
-            <p class="eyebrow">Suara Parlemen Adikara</p>
-            <h2>DPM KM UNNES<br />Bicara</h2>
-            <p>Pandangan dan percakapan tentang masa depan Indonesia.</p>
+            <p class="eyebrow" data-content-key="homepage.quotes.sectionLabel">Suara Parlemen Adikara</p>
+            <h2 data-content-key="homepage.quotes.sectionTitle">DPM KM UNNES<br />Bicara</h2>
+            <p data-content-key="homepage.quotes.sectionDescription">Pandangan dan percakapan tentang masa depan Indonesia.</p>
             <div class="talks-controls">
               <button type="button" class="talk-prev" aria-label="Kutipan sebelumnya">←</button>
               <button type="button" class="talk-next" aria-label="Kutipan berikutnya">→</button>
