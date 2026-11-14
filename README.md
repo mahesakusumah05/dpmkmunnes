@@ -33,13 +33,13 @@ Buat database `dpm_km_unnes` dan koleksi `news`, lalu tambahkan dokumen berikut.
 
 Formulir beranda mengirim data ke `POST /api/aspirations`. Kiriman disimpan di koleksi `aspirations` dan tidak ditampilkan kepada publik. Endpoint memvalidasi isi dan membatasi kiriman hingga 10 per alamat IP per jam. Batasi akses koleksi ini kepada staf yang berwenang melalui Atlas.
 
-## Deploy ke Render
+## Deploy ke Railway
 
-1. Unggah proyek ke repositori GitHub dan hubungkan repositori melalui **Render → New → Blueprint**. Render akan membaca `render.yaml`, menjalankan `npm install` dan `npm start`, serta memeriksa `/api/health`. Blueprint menggunakan paket Free; layanan dapat tidur setelah tidak aktif dan perlu waktu untuk aktif kembali saat ada permintaan.
-2. Saat diminta, masukkan connection string Atlas sebagai secret `MONGODB_URI`. Pastikan key-nya persis `MONGODB_URI`, bukan connection string. `MONGODB_DB` sudah ditetapkan menjadi `dpm_km_unnes`.
-3. Di Atlas, atur **Security → Network Access** agar mengizinkan koneksi keluar dari Render. Gunakan IP statis jika tersedia untuk layanan/plan Anda. Hindari `0.0.0.0/0`; jika Render tidak menyediakan egress IP yang stabil, evaluasi opsi jaringan yang tersedia sebelum memperluas akses Atlas.
-4. Deploy, buka domain `onrender.com` yang diberikan Render, lalu periksa `/api/health`. Respons sukses menunjukkan `"database":"connected"`.
+1. Unggah proyek ke repositori GitHub dan hubungkan repositori melalui **Railway → New Project → Deploy from GitHub repo**. Railway memakai `railway.json` untuk menjalankan `npm start` dan memeriksa `/api/health`.
+2. Pada service Railway, buka **Variables** dan tambahkan `MONGODB_URI` berisi connection string dari Atlas, serta `MONGODB_DB` dengan nilai `dpm_km_unnes`. Simpan URI sebagai variable rahasia dan jangan menaruhnya di repositori.
+3. Di Atlas, atur **Security → Network Access** agar mengizinkan koneksi keluar Railway. Gunakan static outbound IP jika tersedia untuk project/plan Anda dan izinkan hanya IP tersebut. Hindari `0.0.0.0/0`; jika Railway tidak menyediakan egress IP yang stabil, periksa opsi egress/IP statis yang tersedia sebelum memperluas akses Atlas.
+4. Deploy service, buka domain yang dibuat Railway, lalu periksa `/api/health`. Respons sukses menunjukkan `"database":"connected"`.
 
-Pastikan kredensial Atlas tidak pernah dimasukkan ke file yang di-commit. Jika connection string atau password pernah terlihat di tangkapan layar atau tersimpan di repositori, rotasi password database Atlas dan perbarui secret `MONGODB_URI` di Render.
+Pastikan kredensial Atlas tidak pernah dimasukkan ke file yang di-commit. Jika connection string atau password pernah terlihat di tangkapan layar atau tersimpan di repositori, rotasi password database Atlas dan perbarui `MONGODB_URI` di Railway.
 
 URL dashboard Atlas bukan connection string database maupun alamat hosting API. Ambil connection string driver dari **Connect → Drivers** di Atlas.
