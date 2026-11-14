@@ -33,8 +33,13 @@ Buat database `dpm_km_unnes` dan koleksi `news`, lalu tambahkan dokumen berikut.
 
 Formulir beranda mengirim data ke `POST /api/aspirations`. Kiriman disimpan di koleksi `aspirations` dan tidak ditampilkan kepada publik. Endpoint memvalidasi isi dan membatasi kiriman hingga 10 per alamat IP per jam. Batasi akses koleksi ini kepada staf yang berwenang melalui Atlas.
 
-## Deploy ke Render
+## Deploy ke Railway
 
-Hubungkan repositori proyek ke Render sebagai **Web Service**, atau gunakan Blueprint dari `render.yaml`. Isi `MONGODB_URI` sebagai secret environment variable di Render; jangan simpan kredensial di repositori. Izinkan alamat egress Render di **Atlas Network Access** dan gunakan pengguna database dengan peran minimum yang diperlukan. Jika layanan Render memakai alamat egress dinamis, gunakan IP statis jika tersedia daripada membuka akses jaringan secara luas. Render menyediakan `PORT` secara otomatis.
+1. Unggah proyek ke repositori GitHub dan hubungkan repositori itu melalui **Railway → New Project → Deploy from GitHub repo**. Railway memakai `railway.json` untuk menjalankan `npm start` dan memeriksa `/api/health`.
+2. Pada service di Railway, buka **Variables** dan tambahkan `MONGODB_URI` berisi connection string dari Atlas, serta `MONGODB_DB` dengan nilai `dpm_km_unnes`. Simpan URI sebagai variable rahasia dan jangan menaruhnya di repositori.
+3. Di Atlas, izinkan alamat egress Railway di **Security → Network Access**. Gunakan static outbound IP Railway jika tersedia untuk project/plan Anda dan izinkan hanya IP tersebut. Hindari `0.0.0.0/0`; bila Railway tidak menyediakan egress stabil, periksa opsi egress/IP statis yang tersedia sebelum membuka akses Atlas secara luas.
+4. Deploy service, lalu buka domain yang dibuat Railway dan periksa `/api/health`. Respons sukses menunjukkan `"database":"connected"`.
+
+Pastikan kredensial Atlas belum pernah dimasukkan ke file yang di-commit. Jika connection string atau password pernah tersimpan dalam konfigurasi/repository, rotasi password database Atlas dan perbarui `MONGODB_URI` di Railway.
 
 URL dashboard Atlas bukan connection string database maupun alamat hosting API. Ambil connection string driver dari **Connect → Drivers** di Atlas.
