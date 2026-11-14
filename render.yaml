@@ -2,6 +2,7 @@ services:
   - type: web
     name: dpm-km-unnes-portal
     runtime: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
