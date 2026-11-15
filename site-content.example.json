@@ -1,61 +1,295 @@
 {
-  "key": "main",
-  "homepage": {
-    "hero": {
-      "eyebrow": "Parlemen Adikara untuk semua",
-      "link": "about.html",
-      "linkLabel": "Lihat Struktur",
-      "captionLabel": "Informasi terbaru",
-      "captionTitle": "Lihat arsip dan informasi DPM KM UNNES"
-    },
-    "heroSlides": [
-      {
-        "title": "Suara Parlemen\nAdikara.",
-        "description": "Bekerja bersama untuk menyerap aspirasi, merumuskan kebijakan, dan membangun masa depan Indonesia.",
-        "image": "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=2200&q=85"
+  "homepage_content": {
+    "key": "main",
+    "content": {
+      "hero": {
+        "eyebrow": "Parlemen Adikara untuk semua",
+        "link": "about.html",
+        "linkLabel": "Lihat Struktur",
+        "captionLabel": "Informasi terbaru",
+        "captionTitle": "Lihat arsip dan informasi DPM KM UNNES"
       },
-      {
-        "title": "Membangun kemajuan\nmelalui dialog.",
-        "description": "Gagasan dari seluruh penjuru negeri bertemu untuk merumuskan kebijakan yang membawa Indonesia maju.",
-        "image": "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=2200&q=85"
+      "heroSlides": [
+        {
+          "title": "Suara Parlemen\nAdikara.",
+          "description": "Bekerja bersama untuk menyerap aspirasi, merumuskan kebijakan, dan membangun masa depan Indonesia.",
+          "image": "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=2200&q=85"
+        },
+        {
+          "title": "Membangun kemajuan\nmelalui dialog.",
+          "description": "Gagasan dari seluruh penjuru negeri bertemu untuk merumuskan kebijakan yang membawa Indonesia maju.",
+          "image": "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=2200&q=85"
+        },
+        {
+          "title": "Parlemen Adikara terbuka,\nlebih dekat.",
+          "description": "Kenali kerja DPM KM UNNES dan ikut serta dalam percakapan yang membentuk masa depan Indonesia.",
+          "image": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2200&q=85"
+        }
+      ],
+      "quotes": {
+        "sectionLabel": "Suara Parlemen Adikara",
+        "sectionTitle": "DPM KM UNNES\nBicara",
+        "sectionDescription": "Pandangan dan percakapan tentang masa depan Indonesia.",
+        "items": [
+          {
+            "text": "“Kebijakan yang baik berawal dari mendengarkan masyarakat yang terdampak.”",
+            "author": "Suara dari DPM KM UNNES",
+            "role": "Anggota DPM KM UNNES"
+          },
+          {
+            "text": "“Partisipasi publik menjadikan demokrasi lebih terbuka dan tanggap.”",
+            "author": "Suara dari DPM KM UNNES",
+            "role": "Anggota DPM KM UNNES"
+          },
+          {
+            "text": "“Kerja Parlemen Adikara adalah komitmen bersama untuk masa depan yang lebih baik.”",
+            "author": "Suara dari DPM KM UNNES",
+            "role": "Anggota DPM KM UNNES"
+          }
+        ]
       },
-      {
-        "title": "Parlemen Adikara terbuka,\nlebih dekat.",
-        "description": "Kenali kerja DPM KM UNNES dan ikut serta dalam percakapan yang membentuk masa depan Indonesia.",
-        "image": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2200&q=85"
+      "youtube": {
+        "url": "",
+        "sectionLabel": "Video DPM KM UNNES",
+        "sectionTitle": "Kegiatan dalam video",
+        "emptyLinkText": "Tautan YouTube resmi belum ditambahkan",
+        "eyebrow": "Dokumentasi DPM KM UNNES",
+        "title": "Ruang informasi dan dokumentasi kegiatan.",
+        "description": "Area video DPM KM UNNES siap menampilkan dokumentasi. Tautan kanal resmi belum ditambahkan.",
+        "placeholderNote": "Pemutar video dapat dihubungkan setelah video pilihan ditentukan."
       }
-    ],
-    "quotes": {
-      "sectionLabel": "Suara Parlemen Adikara",
-      "sectionTitle": "DPM KM UNNES\nBicara",
-      "sectionDescription": "Pandangan dan percakapan tentang masa depan Indonesia.",
-      "items": [
+    }
+  },
+  "legislation_content": {
+    "key": "main",
+    "content": {
+      "bills": [
         {
-          "text": "“Kebijakan yang baik berawal dari mendengarkan masyarakat yang terdampak.”",
-          "author": "Suara dari DPM KM UNNES",
-          "role": "Anggota DPM KM UNNES"
+          "id": "ruu-koperasi",
+          "documentId": "uu-contoh",
+          "label": "Contoh daftar RUU",
+          "title": "Perlindungan dan pemberdayaan koperasi",
+          "description": "Contoh entri untuk informasi ringkas rancangan undang-undang.",
+          "status": "Pembahasan",
+          "statusType": "review",
+          "url": "#baca-undang-undang"
         },
         {
-          "text": "“Partisipasi publik menjadikan demokrasi lebih terbuka dan tanggap.”",
-          "author": "Suara dari DPM KM UNNES",
-          "role": "Anggota DPM KM UNNES"
+          "id": "ruu-pendidikan",
+          "label": "Contoh daftar RUU",
+          "title": "Perubahan sistem pendidikan nasional",
+          "description": "Status dan tahapan pembahasan dapat diperbarui dari sumber resmi.",
+          "status": "Pembahasan komisi",
+          "statusType": "review",
+          "url": "#baca-undang-undang"
         },
         {
-          "text": "“Kerja Parlemen Adikara adalah komitmen bersama untuk masa depan yang lebih baik.”",
-          "author": "Suara dari DPM KM UNNES",
-          "role": "Anggota DPM KM UNNES"
+          "id": "ruu-sumber-daya",
+          "label": "Contoh daftar RUU",
+          "title": "Pengelolaan sumber daya alam",
+          "description": "Contoh tampilan detail untuk ringkasan materi dan dokumen terkait.",
+          "status": "Perencanaan",
+          "statusType": "planning",
+          "url": "#baca-undang-undang"
+        }
+      ],
+      "documents": [
+        {
+          "id": "uu-contoh",
+          "badge": "NASKAH CONTOH · BUKAN DOKUMEN RESMI",
+          "type": "RANCANGAN",
+          "title": "CONTOH PERATURAN DPM KM UNNES",
+          "number": "Nomor dan tahun belum ditentukan",
+          "subject": "CONTOH PELAYANAN PUBLIK DAN PARTISIPASI MASYARAKAT",
+          "note": "Materi ini hanya contoh tampilan. Ganti dengan naskah yang telah diverifikasi sebelum dipublikasikan.",
+          "downloadUrl": "contoh-naskah-undang-undang.txt",
+          "endmark": "— Akhir naskah contoh —",
+          "sections": [
+            {
+              "id": "topik-ketentuan-umum",
+              "chapter": "BAB I",
+              "title": "KETENTUAN UMUM",
+              "articles": [
+                {
+                  "number": "Pasal 1",
+                  "text": "Dalam naskah contoh ini, pelayanan publik adalah kegiatan ilustratif yang menunjukkan susunan dokumen hukum secara daring."
+                },
+                {
+                  "number": "Pasal 2",
+                  "text": "Contoh naskah ini tidak menetapkan hak, kewajiban, larangan, atau akibat hukum."
+                }
+              ]
+            },
+            {
+              "id": "topik-pelayanan-publik",
+              "chapter": "BAB II",
+              "title": "PELAYANAN PUBLIK",
+              "articles": [
+                {
+                  "number": "Pasal 3",
+                  "text": "Bagian ini menampilkan contoh penataan topik, judul bab, dan nomor pasal."
+                },
+                {
+                  "number": "Pasal 4",
+                  "text": "Informasi mengenai prosedur, persyaratan, jangka waktu, dan biaya harus merujuk pada dokumen resmi."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "history": [
+        {
+          "document": "UU Contoh · Pasal 3",
+          "topic": "Pelayanan publik",
+          "status": "Sedang diubah",
+          "statusType": "in-progress",
+          "description": "Contoh status: perubahan masih dalam pembahasan.",
+          "updatedAt": "—"
+        },
+        {
+          "document": "UU Contoh · Pasal 5",
+          "topic": "Partisipasi masyarakat",
+          "status": "Telah ditetapkan",
+          "statusType": "enacted",
+          "description": "Contoh status: penetapan telah selesai.",
+          "updatedAt": "—"
+        }
+      ],
+      "processStages": [
+        {
+          "title": "Perencanaan",
+          "description": "Rencana legislasi disusun untuk menjadi prioritas pembahasan."
+        },
+        {
+          "title": "Pembahasan",
+          "description": "Rancangan dibahas bersama dan masukan publik dapat dipertimbangkan."
+        },
+        {
+          "title": "Persetujuan",
+          "description": "Rancangan melewati tahapan rapat dan pengambilan keputusan."
+        },
+        {
+          "title": "Pengundangan",
+          "description": "Undang-undang yang disetujui dilanjutkan ke proses pengundangan."
         }
       ]
-    },
-    "youtube": {
-      "url": "",
-      "sectionLabel": "Video DPM KM UNNES",
-      "sectionTitle": "Kegiatan dalam video",
-      "emptyLinkText": "Tautan YouTube resmi belum ditambahkan",
-      "eyebrow": "Dokumentasi DPM KM UNNES",
-      "title": "Ruang informasi dan dokumentasi kegiatan.",
-      "description": "Area video DPM KM UNNES siap menampilkan dokumentasi. Tautan kanal resmi belum ditambahkan.",
-      "placeholderNote": "Pemutar video dapat dihubungkan setelah video pilihan ditentukan."
+    }
+  },
+  "archives_content": {
+    "key": "main",
+    "content": {
+      "items": [
+        {
+          "id": "uu-sebelum-revisi",
+          "category": "laws",
+          "label": "Undang-Undang · Riwayat revisi",
+          "title": "Naskah contoh — sebelum revisi",
+          "description": "Versi awal ilustratif untuk menunjukkan pengarsipan beberapa versi naskah.",
+          "date": "2026-10-01",
+          "format": "TXT",
+          "file": "arsip/uu-contoh-sebelum-revisi.txt",
+          "sample": true
+        },
+        {
+          "id": "uu-sesudah-revisi",
+          "category": "laws",
+          "label": "Undang-Undang · Riwayat revisi",
+          "title": "Naskah contoh — sesudah revisi",
+          "description": "Versi revisi ilustratif. Bukan naskah undang-undang resmi.",
+          "date": "2026-11-01",
+          "format": "TXT",
+          "file": "arsip/uu-contoh-sesudah-revisi.txt",
+          "sample": true
+        },
+        {
+          "id": "laporan-anggaran",
+          "category": "activities",
+          "label": "Laporan anggaran",
+          "title": "Ringkasan laporan anggaran kegiatan",
+          "description": "Contoh berkas ringkasan anggaran kegiatan untuk demonstrasi arsip.",
+          "date": "2026-11-08",
+          "format": "TXT",
+          "file": "arsip/laporan-anggaran-contoh.txt",
+          "sample": true
+        },
+        {
+          "id": "laporan-pengawasan",
+          "category": "activities",
+          "label": "Hasil pengawasan",
+          "title": "Ringkasan hasil pengawasan",
+          "description": "Contoh berkas ringkasan hasil pengawasan dan tindak lanjut.",
+          "date": "2026-11-06",
+          "format": "TXT",
+          "file": "arsip/hasil-pengawasan-contoh.txt",
+          "sample": true
+        },
+        {
+          "id": "foto-dokumentasi-kegiatan",
+          "category": "activities",
+          "label": "Dokumentasi kegiatan",
+          "title": "Dokumentasi pertemuan dan kegiatan",
+          "description": "Pratinjau gambar dokumentasi ilustratif.",
+          "date": "2026-11-03",
+          "image": "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=85",
+          "alt": "Dokumentasi ilustratif sebuah pertemuan",
+          "sample": true
+        }
+      ]
+    }
+  },
+  "activities_content": {
+    "key": "main",
+    "content": {
+      "budget": {
+        "title": "Dokumen transparansi anggaran",
+        "subtitle": "Pratinjau online · format contoh",
+        "notice": "Contoh tampilan: dokumen anggaran resmi belum diberikan. Pratinjau ini merupakan format demonstrasi.",
+        "tableTitle": "Rincian anggaran",
+        "previewUrl": "arsip/transparansi-anggaran-contoh.html",
+        "downloadUrl": "arsip/transparansi-anggaran-contoh.html",
+        "rows": [
+          {
+            "component": "Program kerja",
+            "period": "Belum diisi",
+            "planned": "Belum diisi",
+            "actual": "Belum diisi",
+            "note": "Menunggu dokumen anggaran resmi."
+          },
+          {
+            "component": "Kegiatan kemahasiswaan",
+            "period": "Belum diisi",
+            "planned": "Belum diisi",
+            "actual": "Belum diisi",
+            "note": "Rincian mengikuti dokumen yang dipublikasikan."
+          }
+        ]
+      },
+      "oversightNotice": "Belum ada laporan resmi yang dilampirkan. Tambahkan laporan yang telah diverifikasi.",
+      "oversight": [
+        {
+          "label": "Laporan pengawasan DPM KM UNNES",
+          "title": "Nama kegiatan belum ditambahkan",
+          "description": "Ringkasan hasil pengawasan, catatan pelaksanaan, dan rekomendasi.",
+          "status": "Belum tersedia",
+          "fileUrl": "arsip/hasil-pengawasan-contoh.txt"
+        }
+      ],
+      "galleryNotice": "Foto berikut merupakan ilustrasi. Ganti dengan dokumentasi kegiatan resmi yang telah diverifikasi.",
+      "gallery": [
+        {
+          "title": "Dokumentasi kegiatan",
+          "caption": "Foto ilustrasi · nama dan tanggal kegiatan belum tersedia",
+          "image": "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1000&q=80",
+          "alt": "Ilustrasi suasana pertemuan untuk contoh dokumentasi kegiatan DPM KM UNNES"
+        },
+        {
+          "title": "Diskusi dan pengawasan",
+          "caption": "Foto ilustrasi · nama dan tanggal kegiatan belum tersedia",
+          "image": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1000&q=80",
+          "alt": "Ilustrasi diskusi kelompok untuk contoh dokumentasi kegiatan DPM KM UNNES"
+        }
+      ]
     }
   }
 }

@@ -99,8 +99,11 @@ function escapeHtml(value) {
 
 function safeImageUrl(value) {
   try {
-    const url = new URL(value);
-    return url.protocol === "https:" ? url.href : "";
+    if (typeof value !== "string" || !value.trim()) return "";
+    const url = new URL(value, window.location.origin);
+    if (url.protocol === "https:") return url.href;
+    if (url.origin === window.location.origin && !url.username && !url.password) return url.href;
+    return "";
   } catch {
     return "";
   }
@@ -292,24 +295,19 @@ function updateArchiveItems() {
 
 function renderLegislationContent(content) {
   if (!content || typeof content !== "object") return;
-  const documentDownload = document.querySelector("#law-document-download");
-  const downloadUrl = safeContentHref(content.document?.downloadUrl);
-  if (downloadUrl && documentDownload) documentDownload.href = downloadUrl;
-  const documentNote = document.querySelector("#law-document-note");
-  if (documentNote && typeof content.document?.note === "string") {
-    documentNote.textContent = content.document.note;
-  }
-
   const bills = Array.isArray(content.bills) ? content.bills : [];
   const billMarkup = bills
     .map((bill, index) => {
       if (!bill || typeof bill.title !== "string") return "";
       const id = typeof bill.id === "string" ? bill.id : `bill-${index + 1}`;
-      const href = safeContentHref(bill.url) || `#${encodeURIComponent(id)}`;
+      const documentId = typeof bill.documentId === "string" ? bill.documentId : "";
+      const href = documentId
+        ? `legislation.html?document=${encodeURIComponent(documentId)}#baca-undang-undang`
+        : safeContentHref(bill.url) || `#${encodeURIComponent(id)}`;
       const statusType = ["review", "planning"].includes(bill.statusType)
         ? ` status-${bill.statusType}`
         : "";
-      return `<a class="bill-row" id="${escapeHtml(id)}" href="${escapeHtml(href)}">
+      return `<a class="bill-row" id="${escapeHtml(id)}" href="${escapeHtml(href)}"${documentId ? ` data-legislation-document="${escapeHtml(documentId)}"` : ""}>
         <span class="bill-index">${String(index + 1).padStart(2, "0")}</span>
         <span class="bill-main"><small>${escapeHtml(bill.label || "Informasi legislasi")}</small><strong>${escapeHtml(bill.title)}</strong>${bill.description ? `<span class="bill-detail">${escapeHtml(bill.description)}</span>` : ""}</span>
         <span class="bill-status${statusType}"><i></i> ${escapeHtml(bill.status || "Belum ditentukan")}</span>
@@ -325,21 +323,32 @@ function renderLegislationContent(content) {
     }
   });
 
-  const documentContent = content.document;
   const documentTarget = document.querySelector("#law-document-content");
   const tableOfContents = document.querySelector("#law-document-toc");
-  if (documentTarget && documentContent && Array.isArray(documentContent.sections)) {
-    const sections = documentContent.sections.filter(
-      (section) => section && typeof section.title === "string",
-    );
-    if (tableOfContents) {
-      tableOfContents.innerHTML = `<p class="law-toc-title">Daftar topik</p>${sections
-        .map((section, index) => {
-          const id = typeof section.id === "string" ? section.id : `topik-${index + 1}`;
-          return `<a href="#${encodeURIComponent(id)}"><span>${String(index + 1).padStart(2, "0")}</span> ${escapeHtml(section.title)}</a>`;
-        })
-        .join("")}`;
+  const renderDocument = (documentContent) => {
+    if (!documentContent || !documentTarget) return;
+    const documentDownload = document.querySelector("#law-document-download");
+    const downloadUrl = safeContentHref(documentContent.downloadUrl);
+    if (downloadUrl && documentDownload) documentDownload.href = downloadUrl;
+    const documentNote = document.querySelector("#law-document-note");
+    if (documentNote && typeof documentContent.note === "string") {
+      documentNote.textContent = documentContent.note;
     }
+
+    const sections = Array.isArray(documentContent.sections)
+      ? documentContent.sections.filter((section) => section && typeof section.title === "string")
+      : [];
+    if (tableOfContents) {
+      tableOfContents.innerHTML = sections.length
+        ? `<p class="law-toc-title">Daftar topik</p>${sections
+            .map((section, index) => {
+              const id = typeof section.id === "string" ? section.id : `topik-${index + 1}`;
+              return `<a href="#${encodeURIComponent(id)}"><span>${String(index + 1).padStart(2, "0")}</span> ${escapeHtml(section.title)}</a>`;
+            })
+            .join("")}`
+        : "";
+    }
+
     documentTarget.innerHTML = `<div class="law-document-heading">
       <span class="law-document-badge">${escapeHtml(documentContent.badge || "DOKUMEN LEGISLASI")}</span>
       <p>${escapeHtml(documentContent.type || "DOKUMEN")}</p>
@@ -350,7 +359,9 @@ function renderLegislationContent(content) {
     </div>${sections
       .map((section, index) => {
         const id = typeof section.id === "string" ? section.id : `topik-${index + 1}`;
-        const articles = Array.isArray(section.articles) ? section.articles : [];
+        const articles = Array.isArray(section.articles)
+          ? section.articles.filter((article) => article && typeof article === "object")
+          : [];
         return `<section class="law-topic" id="${escapeHtml(id)}">
           ${section.chapter ? `<p class="law-chapter">${escapeHtml(section.chapter)}</p>` : ""}
           <h4>${escapeHtml(section.title)}</h4>
@@ -359,7 +370,35 @@ function renderLegislationContent(content) {
       })
       .join("")}
       ${documentContent.endmark ? `<p class="law-endmark">${escapeHtml(documentContent.endmark)}</p>` : ""}`;
-  }
+  };
+
+  const documents = Array.isArray(content.documents)
+    ? content.documents.filter(
+        (item) => item && typeof item.id === "string" && typeof item.title === "string",
+      )
+    : [];
+  const documentById = new Map(documents.map((item) => [item.id, item]));
+  const linkedDocumentId = bills.find(
+    (bill) => bill && typeof bill.documentId === "string" && documentById.has(bill.documentId),
+  )?.documentId;
+  const requestedDocumentId = new URLSearchParams(window.location.search).get("document");
+  const initialDocument =
+    (requestedDocumentId && documentById.get(requestedDocumentId)) ||
+    (typeof content.activeDocumentId === "string" && documentById.get(content.activeDocumentId)) ||
+    (linkedDocumentId && documentById.get(linkedDocumentId)) ||
+    documents[0] ||
+    content.document;
+  renderDocument(initialDocument);
+
+  document.querySelectorAll("#bill-list [data-legislation-document]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const selectedDocument = documentById.get(link.dataset.legislationDocument);
+      if (!selectedDocument) return;
+      event.preventDefault();
+      renderDocument(selectedDocument);
+      document.querySelector("#baca-undang-undang")?.scrollIntoView({ behavior: "smooth" });
+    });
+  });
 
   const historyRows = Array.isArray(content.history) ? content.history : [];
   const historyTarget = document.querySelector("#legislation-history-rows");
