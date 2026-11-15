@@ -58,11 +58,9 @@ const archiveDateFormatter = new Intl.DateTimeFormat("id-ID", {
   month: "long",
   year: "numeric",
 });
-const staticArchiveItems =
-  typeof archiveItems === "undefined" ? [] : archiveItems.filter((item) => item.category !== "news");
-let archiveItemsByDate = [...staticArchiveItems].sort((first, second) =>
-  second.date.localeCompare(first.date),
-);
+let backendArchiveItems = [];
+let newsItemsFromApi = [];
+let archiveItemsByDate = [];
 
 const newsTicker = document.querySelector("#latest-news-ticker");
 const archiveNewsGrid = document.querySelector("#archive-news-grid");
@@ -108,6 +106,12 @@ function safeImageUrl(value) {
   }
 }
 
+function isValidArchiveDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsedDate = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === value;
+}
+
 function youtubeVideoId(value) {
   try {
     const url = new URL(value);
@@ -150,10 +154,10 @@ function applySiteContent(content) {
   });
 
   const homepage = content.homepage;
-  if (!homepage || typeof homepage !== "object") return;
+  const siteHomepage = homepage && typeof homepage === "object" ? homepage : {};
 
-  const heroSlides = Array.isArray(homepage.heroSlides)
-    ? homepage.heroSlides
+  const heroSlides = Array.isArray(siteHomepage.heroSlides)
+    ? siteHomepage.heroSlides
         .filter(
           (slide) =>
             slide &&
@@ -168,9 +172,9 @@ function applySiteContent(content) {
           image: safeImageUrl(slide.image),
         }))
     : [];
-  const quoteItems = Array.isArray(homepage.quotes)
-    ? homepage.quotes
-    : homepage.quotes?.items;
+  const quoteItems = Array.isArray(siteHomepage.quotes)
+    ? siteHomepage.quotes
+    : siteHomepage.quotes?.items;
   const homepageQuotes = Array.isArray(quoteItems)
     ? quoteItems
         .filter(
@@ -196,17 +200,40 @@ function applySiteContent(content) {
     }),
   );
 
-  const videoUrl = homepage.youtube?.url;
+  renderLegislationContent(content.legislation);
+  renderActivityContent(content.activities);
+  backendArchiveItems = Array.isArray(content.archives?.items)
+    ? content.archives.items.filter(
+        (item) =>
+          item &&
+          ["laws", "activities"].includes(item.category) &&
+          typeof item.id === "string" &&
+          typeof item.title === "string" &&
+          typeof item.description === "string" &&
+          typeof item.label === "string" &&
+          isValidArchiveDate(item.date),
+      )
+    : [];
+  updateArchiveItems();
+
+  const videoUrl = siteHomepage.youtube?.url;
   const videoId = typeof videoUrl === "string" ? youtubeVideoId(videoUrl) : "";
   const videoFrame = document.querySelector(".video-embed");
+  const videoWatchLink = document.querySelector(".youtube-watch-link");
   if (videoId && videoFrame) {
-    videoFrame.src = `https://www.youtube-nocookie.com/embed/${videoId}`;
+    const embedUrl = new URL(`https://www.youtube-nocookie.com/embed/${videoId}`);
+    embedUrl.searchParams.set("origin", window.location.origin);
+    videoFrame.src = embedUrl.href;
     videoFrame.hidden = false;
     videoFrame.title =
-      typeof homepage.youtube.title === "string" && homepage.youtube.title.trim()
-        ? homepage.youtube.title.trim().slice(0, 120)
+      typeof siteHomepage.youtube.title === "string" && siteHomepage.youtube.title.trim()
+        ? siteHomepage.youtube.title.trim().slice(0, 120)
         : "Video DPM KM UNNES";
     videoFrame.closest(".video-player")?.classList.add("has-video");
+    if (videoWatchLink) {
+      videoWatchLink.href = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+      videoWatchLink.hidden = false;
+    }
     document.querySelector(".youtube-section [data-content-key='homepage.youtube.emptyLinkText']")?.setAttribute("hidden", "");
     document.querySelector(".youtube-section [data-content-key='homepage.youtube.placeholderNote']")?.setAttribute("hidden", "");
   } else if (videoUrl && !videoId) {
@@ -255,9 +282,184 @@ function renderNewsTicker() {
   newsTicker.style.setProperty("--ticker-duration", `${duration}s`);
 }
 
+function updateArchiveItems() {
+  archiveItemsByDate = [...backendArchiveItems, ...newsItemsFromApi].sort((first, second) =>
+    second.date.localeCompare(first.date),
+  );
+  renderNewsTicker();
+  renderArchiveContent();
+}
+
+function renderLegislationContent(content) {
+  if (!content || typeof content !== "object") return;
+  const documentDownload = document.querySelector("#law-document-download");
+  const downloadUrl = safeContentHref(content.document?.downloadUrl);
+  if (downloadUrl && documentDownload) documentDownload.href = downloadUrl;
+  const documentNote = document.querySelector("#law-document-note");
+  if (documentNote && typeof content.document?.note === "string") {
+    documentNote.textContent = content.document.note;
+  }
+
+  const bills = Array.isArray(content.bills) ? content.bills : [];
+  const billMarkup = bills
+    .map((bill, index) => {
+      if (!bill || typeof bill.title !== "string") return "";
+      const id = typeof bill.id === "string" ? bill.id : `bill-${index + 1}`;
+      const href = safeContentHref(bill.url) || `#${encodeURIComponent(id)}`;
+      const statusType = ["review", "planning"].includes(bill.statusType)
+        ? ` status-${bill.statusType}`
+        : "";
+      return `<a class="bill-row" id="${escapeHtml(id)}" href="${escapeHtml(href)}">
+        <span class="bill-index">${String(index + 1).padStart(2, "0")}</span>
+        <span class="bill-main"><small>${escapeHtml(bill.label || "Informasi legislasi")}</small><strong>${escapeHtml(bill.title)}</strong>${bill.description ? `<span class="bill-detail">${escapeHtml(bill.description)}</span>` : ""}</span>
+        <span class="bill-status${statusType}"><i></i> ${escapeHtml(bill.status || "Belum ditentukan")}</span>
+        <b class="bill-arrow">↗</b>
+      </a>`;
+    })
+    .filter(Boolean)
+    .join("");
+  ["#bill-list", "#all-bills"].forEach((selector) => {
+    const target = document.querySelector(selector);
+    if (target) {
+      target.innerHTML = billMarkup || '<p class="archive-empty">Belum ada data legislasi.</p>';
+    }
+  });
+
+  const documentContent = content.document;
+  const documentTarget = document.querySelector("#law-document-content");
+  const tableOfContents = document.querySelector("#law-document-toc");
+  if (documentTarget && documentContent && Array.isArray(documentContent.sections)) {
+    const sections = documentContent.sections.filter(
+      (section) => section && typeof section.title === "string",
+    );
+    if (tableOfContents) {
+      tableOfContents.innerHTML = `<p class="law-toc-title">Daftar topik</p>${sections
+        .map((section, index) => {
+          const id = typeof section.id === "string" ? section.id : `topik-${index + 1}`;
+          return `<a href="#${encodeURIComponent(id)}"><span>${String(index + 1).padStart(2, "0")}</span> ${escapeHtml(section.title)}</a>`;
+        })
+        .join("")}`;
+    }
+    documentTarget.innerHTML = `<div class="law-document-heading">
+      <span class="law-document-badge">${escapeHtml(documentContent.badge || "DOKUMEN LEGISLASI")}</span>
+      <p>${escapeHtml(documentContent.type || "DOKUMEN")}</p>
+      <h3>${escapeHtml(documentContent.title || "")}</h3>
+      <p class="law-document-number">${escapeHtml(documentContent.number || "")}</p>
+      ${documentContent.subject ? `<h4>TENTANG</h4><p class="law-document-subject">${escapeHtml(documentContent.subject)}</p>` : ""}
+      ${documentContent.note ? `<p class="law-document-note">${escapeHtml(documentContent.note)}</p>` : ""}
+    </div>${sections
+      .map((section, index) => {
+        const id = typeof section.id === "string" ? section.id : `topik-${index + 1}`;
+        const articles = Array.isArray(section.articles) ? section.articles : [];
+        return `<section class="law-topic" id="${escapeHtml(id)}">
+          ${section.chapter ? `<p class="law-chapter">${escapeHtml(section.chapter)}</p>` : ""}
+          <h4>${escapeHtml(section.title)}</h4>
+          ${articles.map((article) => `<p><strong>${escapeHtml(article.number || "")}</strong></p><p>${escapeHtml(article.text || "")}</p>`).join("")}
+        </section>`;
+      })
+      .join("")}
+      ${documentContent.endmark ? `<p class="law-endmark">${escapeHtml(documentContent.endmark)}</p>` : ""}`;
+  }
+
+  const historyRows = Array.isArray(content.history) ? content.history : [];
+  const historyTarget = document.querySelector("#legislation-history-rows");
+  if (historyTarget) {
+    historyTarget.innerHTML = historyRows.length
+      ? historyRows
+          .map((row) => {
+            const statusClass =
+              row.statusType === "enacted" ? "status-enacted" : "status-in-progress";
+            return `<tr><td>${escapeHtml(row.document || "")}</td><td>${escapeHtml(row.topic || "")}</td><td><span class="status-badge ${statusClass}">${escapeHtml(row.status || "")}</span></td><td>${escapeHtml(row.description || "")}</td><td>${escapeHtml(row.updatedAt || "—")}</td></tr>`;
+          })
+          .join("")
+      : '<tr><td colspan="5">Belum ada riwayat legislasi.</td></tr>';
+  }
+
+  const processTarget = document.querySelector("#legislation-process-grid");
+  if (processTarget && Array.isArray(content.processStages)) {
+    processTarget.innerHTML = content.processStages
+      .map(
+        (stage, index) =>
+          `<article><span>${String(index + 1).padStart(2, "0")}</span><h3>${escapeHtml(stage.title || "")}</h3><p>${escapeHtml(stage.description || "")}</p></article>`,
+      )
+      .join("");
+  }
+}
+
+function renderActivityContent(content) {
+  if (!content || typeof content !== "object") return;
+  const budget = content.budget || {};
+  const setText = (selector, value) => {
+    const element = document.querySelector(selector);
+    if (element && typeof value === "string" && value.trim()) element.textContent = value.trim();
+  };
+  setText("#budget-document-title", budget.title);
+  setText("#budget-document-subtitle", budget.subtitle);
+  setText("#budget-note", budget.notice);
+  setText("#budget-table-title", budget.tableTitle);
+  setText("#oversight-notice", content.oversightNotice);
+  setText("#gallery-notice", content.galleryNotice);
+
+  const previewUrl = safeContentHref(budget.previewUrl);
+  const budgetFrame = document.querySelector("#budget-document-preview");
+  const budgetOpenLink = document.querySelector("#budget-document-open");
+  const budgetDownloadLink = document.querySelector("#budget-document-download");
+  if (previewUrl && budgetFrame) {
+    budgetFrame.src = previewUrl;
+    budgetFrame.title = budget.title || "Dokumen transparansi anggaran";
+  }
+  if (previewUrl && budgetOpenLink) budgetOpenLink.href = previewUrl;
+  const downloadUrl = safeContentHref(budget.downloadUrl);
+  if (downloadUrl && budgetDownloadLink) budgetDownloadLink.href = downloadUrl;
+
+  const budgetRows = Array.isArray(budget.rows) ? budget.rows : [];
+  const budgetRowsTarget = document.querySelector("#budget-table-rows");
+  if (budgetRowsTarget) {
+    budgetRowsTarget.innerHTML = budgetRows.length
+      ? budgetRows
+          .map(
+            (row) =>
+              `<tr><td>${escapeHtml(row.component || "")}</td><td>${escapeHtml(row.period || "")}</td><td>${escapeHtml(row.planned || "")}</td><td>${escapeHtml(row.actual || "")}</td><td>${escapeHtml(row.note || "")}</td></tr>`,
+          )
+          .join("")
+      : '<tr><td colspan="5">Belum ada data anggaran.</td></tr>';
+  }
+
+  const oversightItems = Array.isArray(content.oversight) ? content.oversight : [];
+  const oversightTarget = document.querySelector("#oversight-list");
+  if (oversightTarget) {
+    oversightTarget.innerHTML = oversightItems.length
+      ? oversightItems
+          .map((item, index) => {
+            const fileUrl = safeContentHref(item.fileUrl);
+            return `<article class="oversight-card">
+              <div class="oversight-index">${String(index + 1).padStart(2, "0")}</div>
+              <div class="oversight-main"><p class="eyebrow">${escapeHtml(item.label || "Laporan pengawasan DPM KM UNNES")}</p><h3>${escapeHtml(item.title || "")}</h3><p>${escapeHtml(item.description || "")}</p></div>
+              <div class="oversight-status"><span>${escapeHtml(item.status || "")}</span>${fileUrl ? `<a href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Buka laporan <b aria-hidden="true">↗</b></a>` : ""}</div>
+            </article>`;
+          })
+          .join("")
+      : '<p class="archive-empty">Belum ada laporan pengawasan.</p>';
+  }
+
+  const galleryItems = Array.isArray(content.gallery) ? content.gallery : [];
+  const galleryTarget = document.querySelector("#activity-gallery");
+  if (galleryTarget) {
+    galleryTarget.innerHTML = galleryItems
+      .map((item) => {
+        const image = safeImageUrl(item.image);
+        if (!image) return "";
+        const alt = item.alt || item.title || "Dokumentasi kegiatan DPM KM UNNES";
+        return `<figure><a href="${escapeHtml(image)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" loading="lazy" /></a><figcaption><strong>${escapeHtml(item.title || "")}</strong><span>${escapeHtml(item.caption || "")}</span></figcaption></figure>`;
+      })
+      .join("");
+  }
+}
+
 function renderArchiveImage(item, imageUrl) {
   const alt = escapeHtml(item.alt || item.title);
-  return `<a class="archive-image-link" href="${imageUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buka gambar: ${alt}"><img src="${imageUrl}" alt="${alt}" loading="lazy" /></a>`;
+  const safeUrl = escapeHtml(imageUrl);
+  return `<a class="archive-image-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" aria-label="Buka gambar: ${alt}"><img src="${safeUrl}" alt="${alt}" loading="lazy" /></a>`;
 }
 
 function renderArchiveCard(item) {
@@ -282,7 +484,8 @@ function renderArchiveCard(item) {
     </article>`;
   }
 
-  if (item.file && item.format) {
+  const fileUrl = safeContentHref(item.file);
+  if (fileUrl && item.format) {
     const format = escapeHtml(item.format);
     return `<article class="archive-card archive-record archive-file-card" id="${id}" data-archive-id="${id}">
     <div class="archive-file-preview" aria-hidden="true"><span>${format}</span><small>Dokumen</small></div>
@@ -290,7 +493,7 @@ function renderArchiveCard(item) {
       <p class="archive-card-meta"><span>${label}</span><time datetime="${escapeHtml(item.date)}">${dateText}</time></p>
       <h3>${title}</h3>
       <p class="archive-card-description">${description}</p>
-      <div class="archive-card-footer">${sampleBadge}<a href="${escapeHtml(item.file)}" download>Unduh ${format} <span aria-hidden="true">↓</span></a></div>
+      <div class="archive-card-footer">${sampleBadge}<a href="${escapeHtml(fileUrl)}" download>Unduh ${format} <span aria-hidden="true">↓</span></a></div>
     </div>
   </article>`;
   }
@@ -315,9 +518,7 @@ function renderArchiveContent() {
     const categoryItems = archiveItemsByDate.filter((item) => item.category === category);
     target.innerHTML = categoryItems.length
       ? categoryItems.map(renderArchiveCard).join("")
-      : category === "news"
-        ? '<p class="archive-empty">Belum ada berita terbaru.</p>'
-        : "";
+      : `<p class="archive-empty">${category === "news" ? "Belum ada berita terbaru." : "Belum ada arsip pada kategori ini."}</p>`;
   });
 
   if (latestNewsGrid) {
@@ -374,8 +575,7 @@ function showNewsLoadError(error) {
   if (latestNewsGrid) latestNewsGrid.innerHTML = `<p class="archive-empty">${message}</p>`;
 }
 
-renderNewsTicker();
-renderArchiveContent();
+updateArchiveItems();
 fetch("/api/news?limit=100")
   .then(async (response) => {
     const result = await response.json();
@@ -399,11 +599,8 @@ fetch("/api/news?limit=100")
       throw new Error("Data berita dari server memiliki format yang tidak valid.");
     }
 
-    archiveItemsByDate = [...staticArchiveItems, ...newsItems].sort((first, second) =>
-      second.date.localeCompare(first.date),
-    );
-    renderNewsTicker();
-    renderArchiveContent();
+    newsItemsFromApi = newsItems;
+    updateArchiveItems();
   })
   .catch(showNewsLoadError);
 

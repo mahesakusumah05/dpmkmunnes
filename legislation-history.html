@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
-    <script src="archive-data.js" defer></script>
     <script src="script.js" defer></script>
   </head>
   <body>
@@ -36,12 +35,7 @@
           <div class="status-table-wrap">
             <table class="status-table">
               <thead><tr><th scope="col">Dokumen / pasal</th><th scope="col">Topik</th><th scope="col">Status contoh</th><th scope="col">Keterangan</th><th scope="col">Pembaruan</th></tr></thead>
-              <tbody>
-                <tr><td>UU Contoh · Pasal 3</td><td>Pelayanan publik</td><td><span class="status-badge status-in-progress">Sedang diubah</span></td><td>Contoh status: perubahan masih dalam pembahasan.</td><td>—</td></tr>
-                <tr><td>UU Contoh · Pasal 5</td><td>Partisipasi masyarakat</td><td><span class="status-badge status-enacted">Telah ditetapkan</span></td><td>Contoh status: penetapan telah selesai.</td><td>—</td></tr>
-                <tr><td>UU Contoh · Pasal 7</td><td>Pengawasan</td><td><span class="status-badge status-in-progress">Sedang diubah</span></td><td>Contoh status: menunggu pembahasan lanjutan.</td><td>—</td></tr>
-                <tr><td>UU Contoh · Pasal 9</td><td>Ketentuan penutup</td><td><span class="status-badge status-enacted">Telah ditetapkan</span></td><td>Contoh status: penetapan telah selesai.</td><td>—</td></tr>
-              </tbody>
+              <tbody id="legislation-history-rows"><tr><td colspan="5">Riwayat legislasi dimuat dari backend.</td></tr></tbody>
             </table>
           </div>
           <a class="button button-dark" href="legislation.html#baca-undang-undang">Kembali ke baca undang-undang <span aria-hidden="true">←</span></a>

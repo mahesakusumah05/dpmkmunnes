@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
-    <script src="archive-data.js" defer></script>
     <script src="script.js" defer></script>
   </head>
   <body>
@@ -33,26 +32,22 @@
             <div><p class="eyebrow">Keterbukaan informasi</p><h2>Transparansi anggaran</h2></div>
             <p class="section-note">Baca dokumen langsung pada halaman ini, lalu telusuri ringkasan komponen anggaran pada tabel.</p>
           </div>
-          <p class="activity-demo-notice"><strong>Contoh tampilan:</strong> dokumen anggaran resmi belum diberikan. Pratinjau ini merupakan format demonstrasi tanpa angka atau data keuangan aktual.</p>
+          <p class="activity-demo-notice" id="budget-notice">Dokumen anggaran akan ditambahkan melalui Atlas.</p>
           <div class="budget-document-frame">
             <div class="budget-document-toolbar">
-              <div><strong>Dokumen transparansi anggaran</strong><span>Pratinjau online · format contoh</span></div>
-              <a class="text-link" href="arsip/transparansi-anggaran-contoh.html" target="_blank" rel="noopener noreferrer">Buka dokumen <span aria-hidden="true">↗</span></a>
+              <div><strong id="budget-document-title">Dokumen transparansi anggaran</strong><span id="budget-document-subtitle">Pratinjau online</span></div>
+              <a class="text-link" id="budget-document-open" href="arsip/transparansi-anggaran-contoh.html" target="_blank" rel="noopener noreferrer">Buka dokumen <span aria-hidden="true">↗</span></a>
             </div>
-            <iframe src="arsip/transparansi-anggaran-contoh.html" title="Pratinjau dokumen transparansi anggaran contoh DPM KM UNNES" loading="lazy"></iframe>
+            <iframe id="budget-document-preview" src="arsip/transparansi-anggaran-contoh.html" title="Pratinjau dokumen transparansi anggaran DPM KM UNNES" loading="lazy"></iframe>
           </div>
-          <div class="budget-table-heading"><div><p class="eyebrow">Ringkasan dokumen</p><h3>Rincian anggaran</h3></div><p>Angka baru ditampilkan setelah dokumen dan realisasi resmi tersedia.</p></div>
+          <div class="budget-table-heading"><div><p class="eyebrow">Ringkasan dokumen</p><h3 id="budget-table-title">Rincian anggaran</h3></div><p>Angka mengikuti dokumen yang ditambahkan melalui Atlas.</p></div>
           <div class="status-table-wrap">
             <table class="status-table activity-data-table">
               <thead><tr><th scope="col">Komponen</th><th scope="col">Periode</th><th scope="col">Rencana / pagu</th><th scope="col">Realisasi</th><th scope="col">Keterangan</th></tr></thead>
-              <tbody>
-                <tr><td>Program kerja</td><td>Belum diisi</td><td>Belum diisi</td><td>Belum diisi</td><td>Menunggu dokumen anggaran resmi.</td></tr>
-                <tr><td>Kegiatan kemahasiswaan</td><td>Belum diisi</td><td>Belum diisi</td><td>Belum diisi</td><td>Rincian akan mengikuti file yang dipublikasikan.</td></tr>
-                <tr><td>Operasional dan administrasi</td><td>Belum diisi</td><td>Belum diisi</td><td>Belum diisi</td><td>Belum ada data keuangan terverifikasi.</td></tr>
-              </tbody>
+              <tbody id="budget-table-rows"></tbody>
             </table>
           </div>
-          <a class="button button-dark budget-download" href="arsip/transparansi-anggaran-contoh.html" download>Unduh dokumen contoh <span aria-hidden="true">↓</span></a>
+          <a class="button button-dark budget-download" id="budget-document-download" href="arsip/transparansi-anggaran-contoh.html" download>Unduh dokumen <span aria-hidden="true">↓</span></a>
         </div>
       </section>
       <section class="oversight-section" id="laporan-pengawasan">
@@ -61,36 +56,8 @@
             <div><p class="eyebrow">Akuntabilitas kegiatan</p><h2>Laporan hasil pengawasan</h2></div>
             <p class="section-note">DPM KM UNNES menyajikan laporan pengawasan per kegiatan, termasuk temuan dan tindak lanjut.</p>
           </div>
-          <p class="activity-demo-notice"><strong>Belum ada laporan resmi yang dilampirkan.</strong> Kartu berikut menunjukkan informasi yang akan ditampilkan untuk setiap kegiatan setelah laporan terverifikasi tersedia.</p>
-          <div class="oversight-list">
-            <article class="oversight-card">
-              <div class="oversight-index">01</div>
-              <div class="oversight-main">
-                <p class="eyebrow">Laporan pengawasan DPM KM UNNES</p>
-                <h3>Nama kegiatan belum ditambahkan</h3>
-                <p>Ringkasan hasil pengawasan, catatan pelaksanaan, dan rekomendasi akan ditampilkan di bagian ini.</p>
-              </div>
-              <div class="oversight-status"><span>Belum tersedia</span><a href="arsip/hasil-pengawasan-contoh.txt" download>Unduh format laporan <b aria-hidden="true">↓</b></a></div>
-            </article>
-            <article class="oversight-card">
-              <div class="oversight-index">02</div>
-              <div class="oversight-main">
-                <p class="eyebrow">Laporan pengawasan DPM KM UNNES</p>
-                <h3>Nama kegiatan belum ditambahkan</h3>
-                <p>Informasi waktu kegiatan, hasil pemantauan, dan tindak lanjut menunggu laporan resmi.</p>
-              </div>
-              <div class="oversight-status"><span>Belum tersedia</span><a href="arsip/hasil-pengawasan-contoh.txt" download>Unduh format laporan <b aria-hidden="true">↓</b></a></div>
-            </article>
-            <article class="oversight-card">
-              <div class="oversight-index">03</div>
-              <div class="oversight-main">
-                <p class="eyebrow">Laporan pengawasan DPM KM UNNES</p>
-                <h3>Nama kegiatan belum ditambahkan</h3>
-                <p>Setiap kegiatan dapat memiliki lampiran laporan tersendiri beserta dokumentasi pendukung.</p>
-              </div>
-              <div class="oversight-status"><span>Belum tersedia</span><a href="arsip/hasil-pengawasan-contoh.txt" download>Unduh format laporan <b aria-hidden="true">↓</b></a></div>
-            </article>
-          </div>
+          <p class="activity-demo-notice" id="oversight-notice">Laporan pengawasan akan ditambahkan melalui Atlas.</p>
+          <div class="oversight-list" id="oversight-list"><p class="archive-empty">Laporan pengawasan akan dimuat dari backend.</p></div>
         </div>
       </section>
       <section class="activity-gallery-section" id="dokumentasi-kegiatan">
@@ -99,12 +66,8 @@
             <div><p class="eyebrow">Dokumentasi visual</p><h2>Dokumentasi kegiatan</h2></div>
             <p class="section-note">Foto kegiatan ditampilkan langsung sebagai galeri, bukan hanya sebagai tautan berkas.</p>
           </div>
-          <p class="activity-demo-notice"><strong>Foto di bawah adalah ilustrasi.</strong> Ganti dengan dokumentasi asli kegiatan DPM KM UNNES sebelum dipublikasikan.</p>
-          <div class="activity-gallery">
-            <figure><a href="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&amp;fit=crop&amp;w=1400&amp;q=85" target="_blank" rel="noopener noreferrer"><img src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&amp;fit=crop&amp;w=1000&amp;q=80" alt="Ilustrasi suasana pertemuan untuk contoh dokumentasi kegiatan DPM KM UNNES" loading="lazy" /></a><figcaption><strong>Dokumentasi kegiatan</strong><span>Foto ilustrasi · nama dan tanggal kegiatan belum tersedia</span></figcaption></figure>
-            <figure><a href="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&amp;fit=crop&amp;w=1400&amp;q=85" target="_blank" rel="noopener noreferrer"><img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&amp;fit=crop&amp;w=1000&amp;q=80" alt="Ilustrasi diskusi kelompok untuk contoh dokumentasi kegiatan DPM KM UNNES" loading="lazy" /></a><figcaption><strong>Diskusi dan pengawasan</strong><span>Foto ilustrasi · nama dan tanggal kegiatan belum tersedia</span></figcaption></figure>
-            <figure><a href="https://images.unsplash.com/photo-1529390079861-591de354faf5?auto=format&amp;fit=crop&amp;w=1400&amp;q=85" target="_blank" rel="noopener noreferrer"><img src="https://images.unsplash.com/photo-1529390079861-591de354faf5?auto=format&amp;fit=crop&amp;w=1000&amp;q=80" alt="Ilustrasi kegiatan masyarakat untuk contoh dokumentasi DPM KM UNNES" loading="lazy" /></a><figcaption><strong>Partisipasi peserta</strong><span>Foto ilustrasi · nama dan tanggal kegiatan belum tersedia</span></figcaption></figure>
-          </div>
+          <p class="activity-demo-notice" id="gallery-notice">Dokumentasi kegiatan akan ditambahkan melalui Atlas.</p>
+          <div class="activity-gallery" id="activity-gallery"></div>
         </div>
       </section>
       <section class="about-band"><div class="container about-band-inner"><p class="eyebrow">Arsip kegiatan</p><h2>Lihat dokumen dan laporan<br />dalam Pengarsipan.</h2><a class="button button-light" href="news.html#arsip-kegiatan">Buka Arsip Kegiatan <span aria-hidden="true">→</span></a></div></section>

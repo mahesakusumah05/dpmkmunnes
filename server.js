@@ -21,6 +21,7 @@ app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(
   helmet({
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     contentSecurityPolicy: {
       directives: {
         "default-src": ["'self'"],
@@ -75,6 +76,9 @@ const siteContentSchema = new mongoose.Schema(
   {
     key: { type: String, required: true, unique: true, default: "main" },
     homepage: { type: mongoose.Schema.Types.Mixed, default: {} },
+    legislation: { type: mongoose.Schema.Types.Mixed, default: {} },
+    archives: { type: mongoose.Schema.Types.Mixed, default: {} },
+    activities: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   { collection: "site_content", versionKey: false },
 );
@@ -125,8 +129,15 @@ app.get("/api/content", async (req, res) => {
     return res.status(503).json({ error: "Layanan basis data sedang tidak tersedia." });
   }
 
-  const record = await SiteContent.findOne({ key: "main" }).select("homepage -_id").lean();
-  res.json({ homepage: record?.homepage ?? {} });
+  const record = await SiteContent.findOne({ key: "main" })
+    .select("homepage legislation archives activities -_id")
+    .lean();
+  res.json({
+    homepage: record?.homepage ?? {},
+    legislation: record?.legislation ?? {},
+    archives: record?.archives ?? {},
+    activities: record?.activities ?? {},
+  });
 });
 
 const aspirationLimiter = rateLimit({
