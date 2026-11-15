@@ -1,44 +1,13 @@
 let stories = [
   {
-    title: "Suara Parlemen\nAdikara.",
+    title: "Suara Mahasiswa,\nArah Perubahan.",
     description:
-      "Bekerja bersama untuk menyerap aspirasi, merumuskan kebijakan, dan membangun masa depan Indonesia.",
-    image:
-      "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=2200&q=85",
-  },
-  {
-    title: "Membangun kemajuan\nmelalui dialog.",
-    description:
-      "Gagasan dari seluruh penjuru negeri bertemu untuk merumuskan kebijakan yang membawa Indonesia maju.",
-    image:
-      "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=2200&q=85",
-  },
-  {
-    title: "Parlemen Adikara terbuka,\nlebih dekat.",
-    description:
-      "Kenali kerja DPM KM UNNES dan ikut serta dalam percakapan yang membentuk masa depan Indonesia.",
-    image:
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2200&q=85",
+      "DPM KM UNNES hadir untuk menyerap aspirasi, mengawal kebijakan, dan memperjuangkan kepentingan mahasiswa Universitas Negeri Semarang.",
+    image: "images/tugu-unnes.jpg",
   },
 ];
 
-let quotes = [
-  {
-    text: "“Kebijakan yang baik berawal dari mendengarkan masyarakat yang terdampak.”",
-    author: "Suara dari DPM KM UNNES",
-    role: "Anggota DPM KM UNNES",
-  },
-  {
-    text: "“Partisipasi publik menjadikan demokrasi lebih terbuka dan tanggap.”",
-    author: "Suara dari DPM KM UNNES",
-    role: "Anggota DPM KM UNNES",
-  },
-  {
-    text: "“Kerja Parlemen Adikara adalah komitmen bersama untuk masa depan yang lebih baik.”",
-    author: "Suara dari DPM KM UNNES",
-    role: "Anggota DPM KM UNNES",
-  },
-];
+let quotes = [];
 
 const heroTitle = document.querySelector("#hero-title");
 const heroDescription = document.querySelector("#hero-description");
@@ -132,10 +101,65 @@ function youtubeVideoId(value) {
   }
 }
 
+function renderOrganizationProfiles(profiles) {
+  const grid = document.querySelector("#org-profile-grid");
+  const emptyState = document.querySelector("#org-profile-empty");
+  if (!grid || !emptyState) return;
+
+  const validProfiles = Array.isArray(profiles)
+    ? profiles
+        .filter(
+          (profile) =>
+            profile &&
+            profile.sample !== true &&
+            typeof profile.name === "string" &&
+            profile.name.trim() &&
+            typeof profile.position === "string" &&
+            profile.position.trim() &&
+            safeImageUrl(profile.photo),
+        )
+        .slice(0, 100)
+    : [];
+
+  grid.replaceChildren();
+  validProfiles.forEach((profile) => {
+    const card = document.createElement("article");
+    card.className = "org-profile-card";
+
+    const photo = document.createElement("img");
+    photo.className = "org-profile-photo";
+    photo.src = safeImageUrl(profile.photo);
+    photo.alt =
+      typeof profile.photoAlt === "string" && profile.photoAlt.trim()
+        ? profile.photoAlt.trim().slice(0, 300)
+        : `Foto profil ${profile.name.trim().slice(0, 120)}`;
+    photo.loading = "lazy";
+    photo.decoding = "async";
+
+    const details = document.createElement("div");
+    details.className = "org-profile-details";
+
+    const name = document.createElement("h3");
+    name.textContent = profile.name.trim().slice(0, 120);
+
+    const position = document.createElement("p");
+    position.textContent = profile.position.trim().slice(0, 160);
+
+    details.append(name, position);
+    card.append(photo, details);
+    grid.append(card);
+  });
+  emptyState.hidden = validProfiles.length > 0;
+}
+
 function applySiteContent(content) {
   document.querySelectorAll("[data-content-key]").forEach((element) => {
     const value = getContentValue(content, element.dataset.contentKey);
-    if (typeof value === "string" && value.trim()) {
+    if (
+      typeof value === "string" &&
+      value.trim() &&
+      !/adikara|contoh|ilustrasi/i.test(value)
+    ) {
       const text = value.trim();
       if (text.includes("\n")) setMultilineText(element, text);
       else element.textContent = text;
@@ -166,6 +190,8 @@ function applySiteContent(content) {
             slide &&
             typeof slide.title === "string" &&
             typeof slide.description === "string" &&
+            slide.sample !== true &&
+            !/images\.unsplash\.com/i.test(slide.image || "") &&
             safeImageUrl(slide.image),
         )
         .slice(0, 10)
@@ -185,7 +211,9 @@ function applySiteContent(content) {
             quote &&
             typeof quote.text === "string" &&
             typeof quote.author === "string" &&
-            typeof quote.role === "string",
+            typeof quote.role === "string" &&
+            !/suara dari dpm km unnes/i.test(quote.author) &&
+            !/kebijakan yang baik berawal|partisipasi publik menjadikan|kerja parlemen adikara/i.test(quote.text),
         )
         .slice(0, 20)
         .map((quote) => ({
@@ -196,7 +224,7 @@ function applySiteContent(content) {
     : [];
 
   if (heroSlides.length) stories = heroSlides;
-  if (homepageQuotes.length) quotes = homepageQuotes;
+  quotes = homepageQuotes;
   document.dispatchEvent(
     new CustomEvent("site-content-loaded", {
       detail: { heroSlides: stories, quotes },
@@ -205,16 +233,18 @@ function applySiteContent(content) {
 
   renderLegislationContent(content.legislation);
   renderActivityContent(content.activities);
+  renderOrganizationProfiles(content.organization?.profiles);
   backendArchiveItems = Array.isArray(content.archives?.items)
     ? content.archives.items.filter(
         (item) =>
           item &&
+          item.sample !== true &&
           ["laws", "activities"].includes(item.category) &&
           typeof item.id === "string" &&
           typeof item.title === "string" &&
           typeof item.description === "string" &&
           typeof item.label === "string" &&
-          isValidArchiveDate(item.date),
+          (isValidArchiveDate(item.date) || /^\d{4}$/.test(item.year || "")),
       )
     : [];
   updateArchiveItems();
@@ -223,7 +253,9 @@ function applySiteContent(content) {
   const videoId = typeof videoUrl === "string" ? youtubeVideoId(videoUrl) : "";
   const videoFrame = document.querySelector(".video-embed");
   const videoWatchLink = document.querySelector(".youtube-watch-link");
+  const videoSection = document.querySelector(".youtube-section");
   if (videoId && videoFrame) {
+    if (videoSection) videoSection.hidden = false;
     const embedUrl = new URL(`https://www.youtube-nocookie.com/embed/${videoId}`);
     embedUrl.searchParams.set("origin", window.location.origin);
     videoFrame.src = embedUrl.href;
@@ -242,6 +274,7 @@ function applySiteContent(content) {
   } else if (videoUrl && !videoId) {
     console.error("Tautan video YouTube di konten situs tidak valid.");
   }
+  if (!videoId && videoSection) videoSection.hidden = true;
 }
 
 fetch("/api/content")
@@ -286,16 +319,254 @@ function renderNewsTicker() {
 }
 
 function updateArchiveItems() {
+  const sortDate = (item) => item.date || `${item.year || "0000"}-01-01`;
   archiveItemsByDate = [...backendArchiveItems, ...newsItemsFromApi].sort((first, second) =>
-    second.date.localeCompare(first.date),
+    sortDate(second).localeCompare(sortDate(first)),
   );
   renderNewsTicker();
   renderArchiveContent();
 }
 
+function parseLawText(source) {
+  const parsed = { preamble: [], chapters: [], appendix: [] };
+  const lines = source.replace(/^\uFEFF/, "").replace(/\r/g, "").split("\n");
+  let activeBlocks = parsed.preamble;
+  let paragraphLines = [];
+
+  const flushParagraph = () => {
+    const text = paragraphLines.join(" ").replace(/\s+/g, " ").trim();
+    if (text) activeBlocks.push({ type: "paragraph", text });
+    paragraphLines = [];
+  };
+  const addBlock = (type, text) => activeBlocks.push({ type, text });
+  const findNextLine = (start) => {
+    let index = start;
+    while (index < lines.length && !lines[index].trim()) index += 1;
+    return index;
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) {
+      flushParagraph();
+      continue;
+    }
+
+    const chapterMatch = line.match(/^BAB\s+([IVXLCDM]+)\s*(.*)$/i);
+    if (chapterMatch) {
+      flushParagraph();
+      const chapterNumber = chapterMatch[1].toUpperCase();
+      let title = chapterMatch[2].trim();
+      if (!title) {
+        const titleIndex = findNextLine(index + 1);
+        const candidate = lines[titleIndex]?.trim() || "";
+        if (candidate && !/^(?:BAB\s+|Bagian\s+|Pasal\s+\d+|LAMPIRAN\b)/i.test(candidate)) {
+          title = candidate;
+          index = titleIndex;
+        }
+      }
+
+      const chapter = {
+        id: `bab-${chapterNumber.toLowerCase()}`,
+        chapter: `BAB ${chapterNumber}`,
+        title,
+        blocks: [],
+      };
+      parsed.chapters.push(chapter);
+      activeBlocks = chapter.blocks;
+      continue;
+    }
+
+    if (/^LAMPIRAN\b/i.test(line)) {
+      flushParagraph();
+      activeBlocks = parsed.appendix;
+      addBlock("heading", line);
+      continue;
+    }
+
+    const inlineArticle = line.match(/^(.*?)\s+(Pasal\s+\d+)\s*$/i);
+    if (inlineArticle) {
+      flushParagraph();
+      if (inlineArticle[1].trim()) addBlock("part", inlineArticle[1].trim());
+      addBlock("article", inlineArticle[2].replace(/\s+/g, " "));
+      continue;
+    }
+
+    if (/^Bagian\s+/i.test(line)) {
+      flushParagraph();
+      let title = line;
+      if (/^Bagian\s+\S+\s*$/i.test(line)) {
+        const titleIndex = findNextLine(index + 1);
+        const candidate = lines[titleIndex]?.trim() || "";
+        if (
+          candidate &&
+          !/^(?:BAB\s+|Bagian\s+|Pasal\s+\d+|LAMPIRAN\b|\d+[.)]|[a-z][.)])/i.test(candidate)
+        ) {
+          title = `${line} — ${candidate}`;
+          index = titleIndex;
+        }
+      }
+      addBlock("part", title);
+      continue;
+    }
+
+    if (/^Pasal\s+\d+\s*$/i.test(line)) {
+      flushParagraph();
+      addBlock("article", line);
+      continue;
+    }
+
+    if (activeBlocks === parsed.preamble && /^Menimbang\s*:?$/i.test(line)) {
+      flushParagraph();
+      addBlock("heading", line);
+      continue;
+    }
+
+    if (
+      activeBlocks === parsed.preamble &&
+      !parsed.preamble.some((block) => block.type === "heading" && /^Menimbang\b/i.test(block.text))
+    ) {
+      flushParagraph();
+      const decisionMarker = line.match(/^(.*?)\s+(MEMUTUSKAN:)\s*$/i);
+      if (decisionMarker) {
+        if (decisionMarker[1].trim()) addBlock("heading", decisionMarker[1].trim());
+        addBlock("heading", decisionMarker[2]);
+      } else {
+        addBlock("heading", line);
+      }
+      continue;
+    }
+
+    if (
+      activeBlocks === parsed.preamble &&
+      /^(?:Mengingat|Memutuskan|Menetapkan)\s*:?$/i.test(line)
+    ) {
+      flushParagraph();
+      addBlock("heading", line);
+      continue;
+    }
+
+    paragraphLines.push(line);
+  }
+  flushParagraph();
+  return parsed;
+}
+
+function appendLawTextBlock(container, block) {
+  const tagName = block.type === "article" ? "h4" : block.type === "part" ? "h5" : "p";
+  const element = document.createElement(tagName);
+  element.className = `law-text-${block.type}`;
+  if (
+    block.type === "paragraph" &&
+    /^(?:\d+[.)]|[a-z][.)])\s/i.test(block.text)
+  ) {
+    element.classList.add("law-text-list-item");
+  }
+  element.textContent = block.text;
+  container.append(element);
+}
+
+function renderLawTextDocument(target, documentContent, parsed) {
+  const content = document.createElement("div");
+  content.className = "law-text-content";
+
+  const badge = document.createElement("span");
+  badge.className = "law-document-badge";
+  badge.textContent = documentContent.badge || "NASKAH UNDANG-UNDANG";
+  content.append(badge);
+
+  if (parsed.preamble.length) {
+    const preamble = document.createElement("header");
+    preamble.className = "law-text-preamble";
+    parsed.preamble.forEach((block, index) => {
+      if (index === 0 || index === 2) {
+        const title = document.createElement(index === 0 ? "h2" : "p");
+        title.className = index === 0 ? "law-source-title" : "law-source-subject";
+        title.textContent = block.text;
+        preamble.append(title);
+      } else if (index === 1 && /^TENTANG$/i.test(block.text)) {
+        const label = document.createElement("p");
+        label.className = "law-source-label";
+        label.textContent = block.text;
+        preamble.append(label);
+      } else {
+        appendLawTextBlock(preamble, block);
+      }
+    });
+    content.append(preamble);
+  }
+
+  parsed.chapters.forEach((chapter) => {
+    const section = document.createElement("section");
+    section.className = "law-text-chapter";
+    section.id = chapter.id;
+
+    const heading = document.createElement("header");
+    heading.className = "law-text-chapter-heading";
+    const chapterLabel = document.createElement("p");
+    chapterLabel.className = "law-chapter";
+    chapterLabel.textContent = chapter.chapter;
+    const chapterTitle = document.createElement("h3");
+    chapterTitle.textContent = chapter.title;
+    heading.append(chapterLabel, chapterTitle);
+    section.append(heading);
+    chapter.blocks.forEach((block) => appendLawTextBlock(section, block));
+    content.append(section);
+  });
+
+  if (parsed.appendix.length) {
+    const appendix = document.createElement("section");
+    appendix.className = "law-text-appendix";
+    parsed.appendix.forEach((block) => appendLawTextBlock(appendix, block));
+    content.append(appendix);
+  }
+
+  target.replaceChildren(content);
+}
+
+function renderLawNavigation(navigation, items, title) {
+  if (!navigation) return;
+  navigation.hidden = false;
+  navigation.replaceChildren();
+
+  if (!items.length) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "law-toc-empty";
+    emptyState.textContent = "Navigasi bab belum tersedia untuk dokumen ini.";
+    navigation.append(emptyState);
+    return;
+  }
+
+  const heading = document.createElement("p");
+  heading.className = "law-toc-title";
+  heading.textContent = title;
+  navigation.append(heading);
+
+  items.forEach((item, index) => {
+    const id = typeof item.id === "string" && item.id.trim() ? item.id : `topik-${index + 1}`;
+    const button = document.createElement("button");
+    button.className = "law-toc-link";
+    button.type = "button";
+    const label = document.createElement("span");
+    label.textContent = item.chapter || String(index + 1).padStart(2, "0");
+    button.append(label, document.createTextNode(` ${item.title}`));
+    button.addEventListener("click", () => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    navigation.append(button);
+  });
+}
+
 function renderLegislationContent(content) {
   if (!content || typeof content !== "object") return;
-  const bills = Array.isArray(content.bills) ? content.bills : [];
+  const bills = Array.isArray(content.bills)
+    ? content.bills.filter(
+        (bill) =>
+          bill &&
+          bill.sample !== true &&
+          !/contoh|ilustrasi/i.test(`${bill.label || ""} ${bill.title || ""} ${bill.description || ""}`),
+      )
+    : [];
   const billMarkup = bills
     .map((bill, index) => {
       if (!bill || typeof bill.title !== "string") return "";
@@ -325,11 +596,26 @@ function renderLegislationContent(content) {
 
   const documentTarget = document.querySelector("#law-document-content");
   const tableOfContents = document.querySelector("#law-document-toc");
-  const renderDocument = (documentContent) => {
+  let documentRenderVersion = 0;
+  const renderDocument = async (documentContent) => {
     if (!documentContent || !documentTarget) return;
+    const renderVersion = ++documentRenderVersion;
     const documentDownload = document.querySelector("#law-document-download");
-    const downloadUrl = safeContentHref(documentContent.downloadUrl);
+    const textUrl = safeContentHref(documentContent.textUrl);
+    const configuredDownloadUrl = safeContentHref(documentContent.downloadUrl);
+    const downloadCandidate = textUrl || configuredDownloadUrl;
+    let downloadUrl = downloadCandidate;
+    if (downloadCandidate) {
+      try {
+        if (/\.pdf$/i.test(new URL(downloadCandidate, window.location.href).pathname)) {
+          downloadUrl = "";
+        }
+      } catch {
+        downloadUrl = "";
+      }
+    }
     if (downloadUrl && documentDownload) documentDownload.href = downloadUrl;
+    if (documentDownload) documentDownload.hidden = !downloadUrl;
     const documentNote = document.querySelector("#law-document-note");
     if (documentNote && typeof documentContent.note === "string") {
       documentNote.textContent = documentContent.note;
@@ -338,17 +624,66 @@ function renderLegislationContent(content) {
     const sections = Array.isArray(documentContent.sections)
       ? documentContent.sections.filter((section) => section && typeof section.title === "string")
       : [];
-    if (tableOfContents) {
-      tableOfContents.innerHTML = sections.length
-        ? `<p class="law-toc-title">Daftar topik</p>${sections
-            .map((section, index) => {
-              const id = typeof section.id === "string" ? section.id : `topik-${index + 1}`;
-              return `<a href="#${encodeURIComponent(id)}"><span>${String(index + 1).padStart(2, "0")}</span> ${escapeHtml(section.title)}</a>`;
-            })
-            .join("")}`
-        : "";
+
+    if (textUrl) {
+      documentTarget.setAttribute("aria-busy", "true");
+      documentTarget.textContent = "Memuat naskah undang-undang…";
+      if (tableOfContents) {
+        tableOfContents.hidden = false;
+        tableOfContents.replaceChildren();
+        const status = document.createElement("p");
+        status.className = "law-toc-empty";
+        status.textContent = "Memuat navigasi bab…";
+        tableOfContents.append(status);
+      }
+
+      try {
+        const sourceUrl = new URL(textUrl, window.location.href);
+        if (sourceUrl.origin !== window.location.origin) {
+          throw new Error("File naskah harus berasal dari situs yang sama.");
+        }
+        const response = await fetch(sourceUrl.href);
+        if (!response.ok) throw new Error(`Permintaan naskah gagal (${response.status}).`);
+        const parsed = parseLawText(await response.text());
+        if (documentRenderVersion !== renderVersion) return;
+        if (!parsed.chapters.length) {
+          throw new Error("Tidak ada judul BAB yang dapat dikenali pada naskah.");
+        }
+        renderLawTextDocument(documentTarget, documentContent, parsed);
+        renderLawNavigation(tableOfContents, parsed.chapters, "Navigasi bab");
+      } catch (error) {
+        if (documentRenderVersion !== renderVersion) return;
+        console.error("Gagal memuat naskah undang-undang:", error);
+        const message = document.createElement("p");
+        message.className = "law-load-error";
+        message.setAttribute("role", "alert");
+        message.textContent = "Naskah undang-undang gagal dimuat. Silakan coba kembali atau hubungi pengelola situs.";
+        documentTarget.replaceChildren(message);
+        if (tableOfContents) {
+          const navigationError = document.createElement("p");
+          navigationError.className = "law-toc-empty";
+          navigationError.textContent = "Navigasi bab tidak tersedia karena naskah gagal dimuat.";
+          tableOfContents.replaceChildren(navigationError);
+        }
+      } finally {
+        if (documentRenderVersion === renderVersion) {
+          documentTarget.removeAttribute("aria-busy");
+        }
+      }
+      return;
     }
 
+    if (tableOfContents) {
+      tableOfContents.hidden = false;
+      renderLawNavigation(
+        tableOfContents,
+        sections.map((section, index) => ({
+          ...section,
+          id: typeof section.id === "string" ? section.id : `topik-${index + 1}`,
+        })),
+        "Daftar topik",
+      );
+    }
     documentTarget.innerHTML = `<div class="law-document-heading">
       <span class="law-document-badge">${escapeHtml(documentContent.badge || "DOKUMEN LEGISLASI")}</span>
       <p>${escapeHtml(documentContent.type || "DOKUMEN")}</p>
@@ -374,7 +709,12 @@ function renderLegislationContent(content) {
 
   const documents = Array.isArray(content.documents)
     ? content.documents.filter(
-        (item) => item && typeof item.id === "string" && typeof item.title === "string",
+        (item) =>
+          item &&
+          item.sample !== true &&
+          typeof item.id === "string" &&
+          typeof item.title === "string" &&
+          !/contoh|bukan dokumen resmi/i.test(`${item.badge || ""} ${item.title || ""} ${item.subject || ""}`),
       )
     : [];
   const documentById = new Map(documents.map((item) => [item.id, item]));
@@ -386,8 +726,7 @@ function renderLegislationContent(content) {
     (requestedDocumentId && documentById.get(requestedDocumentId)) ||
     (typeof content.activeDocumentId === "string" && documentById.get(content.activeDocumentId)) ||
     (linkedDocumentId && documentById.get(linkedDocumentId)) ||
-    documents[0] ||
-    content.document;
+    documents[0];
   renderDocument(initialDocument);
 
   document.querySelectorAll("#bill-list [data-legislation-document]").forEach((link) => {
@@ -400,7 +739,14 @@ function renderLegislationContent(content) {
     });
   });
 
-  const historyRows = Array.isArray(content.history) ? content.history : [];
+  const historyRows = Array.isArray(content.history)
+    ? content.history.filter(
+        (row) =>
+          row &&
+          row.sample !== true &&
+          !/contoh|ilustrasi/i.test(`${row.document || ""} ${row.description || ""}`),
+      )
+    : [];
   const historyTarget = document.querySelector("#legislation-history-rows");
   if (historyTarget) {
     historyTarget.innerHTML = historyRows.length
@@ -411,12 +757,13 @@ function renderLegislationContent(content) {
             return `<tr><td>${escapeHtml(row.document || "")}</td><td>${escapeHtml(row.topic || "")}</td><td><span class="status-badge ${statusClass}">${escapeHtml(row.status || "")}</span></td><td>${escapeHtml(row.description || "")}</td><td>${escapeHtml(row.updatedAt || "—")}</td></tr>`;
           })
           .join("")
-      : '<tr><td colspan="5">Belum ada riwayat legislasi.</td></tr>';
+      : '<tr><td colspan="5">Belum ada riwayat perubahan resmi yang tersedia.</td></tr>';
   }
 
   const processTarget = document.querySelector("#legislation-process-grid");
   if (processTarget && Array.isArray(content.processStages)) {
     processTarget.innerHTML = content.processStages
+      .filter((stage) => stage && stage.sample !== true)
       .map(
         (stage, index) =>
           `<article><span>${String(index + 1).padStart(2, "0")}</span><h3>${escapeHtml(stage.title || "")}</h3><p>${escapeHtml(stage.description || "")}</p></article>`,
@@ -434,24 +781,49 @@ function renderActivityContent(content) {
   };
   setText("#budget-document-title", budget.title);
   setText("#budget-document-subtitle", budget.subtitle);
-  setText("#budget-note", budget.notice);
+  if (!/contoh|ilustrasi|demonstrasi/i.test(budget.notice || "")) {
+    setText("#budget-notice", budget.notice);
+  }
   setText("#budget-table-title", budget.tableTitle);
   setText("#oversight-notice", content.oversightNotice);
-  setText("#gallery-notice", content.galleryNotice);
+  if (!/contoh|ilustrasi|demonstrasi/i.test(content.galleryNotice || "")) {
+    setText("#gallery-notice", content.galleryNotice);
+  }
 
-  const previewUrl = safeContentHref(budget.previewUrl);
+  const previewUrl = /contoh|demonstrasi/i.test(budget.previewUrl || "")
+    ? ""
+    : safeContentHref(budget.previewUrl);
   const budgetFrame = document.querySelector("#budget-document-preview");
   const budgetOpenLink = document.querySelector("#budget-document-open");
   const budgetDownloadLink = document.querySelector("#budget-document-download");
   if (previewUrl && budgetFrame) {
     budgetFrame.src = previewUrl;
     budgetFrame.title = budget.title || "Dokumen transparansi anggaran";
+    budgetFrame.hidden = false;
   }
-  if (previewUrl && budgetOpenLink) budgetOpenLink.href = previewUrl;
+  if (!previewUrl && budgetFrame) budgetFrame.hidden = true;
+  if (budgetOpenLink) {
+    budgetOpenLink.hidden = !previewUrl;
+    if (previewUrl) budgetOpenLink.href = previewUrl;
+  }
+  const budgetEmptyNote = document.querySelector(".budget-preview-empty");
+  if (budgetEmptyNote) budgetEmptyNote.hidden = Boolean(previewUrl);
   const downloadUrl = safeContentHref(budget.downloadUrl);
-  if (downloadUrl && budgetDownloadLink) budgetDownloadLink.href = downloadUrl;
+  if (budgetDownloadLink) {
+    budgetDownloadLink.hidden = !downloadUrl || /contoh|demonstrasi/i.test(budget.downloadUrl || "");
+    if (downloadUrl && !budgetDownloadLink.hidden) budgetDownloadLink.href = downloadUrl;
+  }
 
-  const budgetRows = Array.isArray(budget.rows) ? budget.rows : [];
+  const budgetRows = Array.isArray(budget.rows)
+    ? budget.rows.filter(
+        (row) =>
+          row &&
+          row.sample !== true &&
+          !/belum diisi|menunggu dokumen|contoh/i.test(
+            `${row.component || ""} ${row.period || ""} ${row.planned || ""} ${row.actual || ""} ${row.note || ""}`,
+          ),
+      )
+    : [];
   const budgetRowsTarget = document.querySelector("#budget-table-rows");
   if (budgetRowsTarget) {
     budgetRowsTarget.innerHTML = budgetRows.length
@@ -463,8 +835,17 @@ function renderActivityContent(content) {
           .join("")
       : '<tr><td colspan="5">Belum ada data anggaran.</td></tr>';
   }
+  const budgetNotice = document.querySelector("#budget-notice");
+  if (budgetNotice && (previewUrl || budgetRows.length)) budgetNotice.hidden = true;
 
-  const oversightItems = Array.isArray(content.oversight) ? content.oversight : [];
+  const oversightItems = Array.isArray(content.oversight)
+    ? content.oversight.filter(
+        (item) =>
+          item &&
+          item.sample !== true &&
+          !/contoh|ilustrasi|belum ditambahkan/i.test(`${item.title || ""} ${item.description || ""}`),
+      )
+    : [];
   const oversightTarget = document.querySelector("#oversight-list");
   if (oversightTarget) {
     oversightTarget.innerHTML = oversightItems.length
@@ -480,8 +861,17 @@ function renderActivityContent(content) {
           .join("")
       : '<p class="archive-empty">Belum ada laporan pengawasan.</p>';
   }
+  const oversightNotice = document.querySelector("#oversight-notice");
+  if (oversightNotice && oversightItems.length) oversightNotice.hidden = true;
 
-  const galleryItems = Array.isArray(content.gallery) ? content.gallery : [];
+  const galleryItems = Array.isArray(content.gallery)
+    ? content.gallery.filter(
+        (item) =>
+          item &&
+          item.sample !== true &&
+          !/contoh|ilustrasi/i.test(`${item.caption || ""} ${item.alt || ""}`),
+      )
+    : [];
   const galleryTarget = document.querySelector("#activity-gallery");
   if (galleryTarget) {
     galleryTarget.innerHTML = galleryItems
@@ -492,7 +882,12 @@ function renderActivityContent(content) {
         return `<figure><a href="${escapeHtml(image)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" loading="lazy" /></a><figcaption><strong>${escapeHtml(item.title || "")}</strong><span>${escapeHtml(item.caption || "")}</span></figcaption></figure>`;
       })
       .join("");
+    if (!galleryTarget.children.length) {
+      galleryTarget.innerHTML = '<p class="archive-empty">Belum ada dokumentasi kegiatan resmi.</p>';
+    }
   }
+  const galleryNotice = document.querySelector("#gallery-notice");
+  if (galleryNotice && galleryItems.some((item) => safeImageUrl(item.image))) galleryNotice.hidden = true;
 }
 
 function renderArchiveImage(item, imageUrl) {
@@ -502,7 +897,11 @@ function renderArchiveImage(item, imageUrl) {
 }
 
 function renderArchiveCard(item) {
-  const date = archiveDateFormatter.format(new Date(`${item.date}T12:00:00`));
+  const date = isValidArchiveDate(item.date)
+    ? archiveDateFormatter.format(new Date(`${item.date}T12:00:00`))
+    : /^\d{4}$/.test(item.year || "")
+      ? `Tahun ${item.year}`
+      : "Tanggal tidak dicantumkan";
   const sampleBadge = item.sample ? '<span class="archive-sample-badge">Contoh</span>' : "";
   const id = escapeHtml(item.id);
   const label = escapeHtml(item.label);
@@ -515,7 +914,7 @@ function renderArchiveCard(item) {
     return `<article class="archive-card archive-record archive-image-card" id="${id}" data-archive-id="${id}">
       ${renderArchiveImage(item, imageUrl)}
       <div class="archive-card-body">
-        <p class="archive-card-meta"><span>${label}</span><time datetime="${escapeHtml(item.date)}">${dateText}</time></p>
+        <p class="archive-card-meta"><span>${label}</span><time${isValidArchiveDate(item.date) ? ` datetime="${escapeHtml(item.date)}"` : ""}>${dateText}</time></p>
         <h3>${title}</h3>
         <p class="archive-card-description">${description}</p>
         <div class="archive-card-footer">${sampleBadge}<a href="${imageUrl}" target="_blank" rel="noopener noreferrer">Lihat gambar <span aria-hidden="true">↗</span></a></div>
@@ -529,7 +928,7 @@ function renderArchiveCard(item) {
     return `<article class="archive-card archive-record archive-file-card" id="${id}" data-archive-id="${id}">
     <div class="archive-file-preview" aria-hidden="true"><span>${format}</span><small>Dokumen</small></div>
     <div class="archive-card-body">
-      <p class="archive-card-meta"><span>${label}</span><time datetime="${escapeHtml(item.date)}">${dateText}</time></p>
+      <p class="archive-card-meta"><span>${label}</span><time${isValidArchiveDate(item.date) ? ` datetime="${escapeHtml(item.date)}"` : ""}>${dateText}</time></p>
       <h3>${title}</h3>
       <p class="archive-card-description">${description}</p>
       <div class="archive-card-footer">${sampleBadge}<a href="${escapeHtml(fileUrl)}" download>Unduh ${format} <span aria-hidden="true">↓</span></a></div>
@@ -562,7 +961,7 @@ function renderArchiveContent() {
 
   if (latestNewsGrid) {
     const newsItems = archiveItemsByDate.filter((item) => item.category === "news");
-    const latestMonth = newsItems[0]?.date.slice(0, 7);
+    const latestMonth = newsItems[0]?.date?.slice(0, 7);
     const latestMonthItems = newsItems.filter((item) => item.date.startsWith(latestMonth));
     latestNewsGrid.innerHTML = latestMonthItems.length
       ? latestMonthItems.map((item, index) => {
@@ -816,6 +1215,7 @@ const quoteAuthor = document.querySelector("#quote-author");
 const quoteRole = document.querySelector("#quote-role");
 const quoteProgress = document.querySelector(".quote-progress span");
 const quoteCard = document.querySelector(".quote-card");
+const talksSection = document.querySelector(".talks-section");
 
 if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
   const quoteDelay = 7000;
@@ -880,9 +1280,17 @@ if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
   });
   document.addEventListener("visibilitychange", scheduleQuoteAdvance);
   reducedMotionPreference.addEventListener("change", scheduleQuoteAdvance);
-  document.addEventListener("site-content-loaded", () => showQuote(0));
-  quoteProgress.classList.add("is-running");
-  scheduleQuoteAdvance();
+  document.addEventListener("site-content-loaded", () => {
+    if (!quotes.length) return;
+    if (talksSection) talksSection.hidden = false;
+    showQuote(0);
+  });
+  if (quotes.length) {
+    quoteProgress.classList.add("is-running");
+    scheduleQuoteAdvance();
+  } else if (talksSection) {
+    talksSection.hidden = true;
+  }
 }
 
 const menuToggle = document.querySelector(".menu-toggle");
