@@ -601,21 +601,33 @@ function renderLegislationContent(content) {
     if (!documentContent || !documentTarget) return;
     const renderVersion = ++documentRenderVersion;
     const documentDownload = document.querySelector("#law-document-download");
-    const textUrl = safeContentHref(documentContent.textUrl);
     const configuredDownloadUrl = safeContentHref(documentContent.downloadUrl);
-    const downloadCandidate = textUrl || configuredDownloadUrl;
-    let downloadUrl = downloadCandidate;
-    if (downloadCandidate) {
+    const previewCandidates = [
+      documentContent.textUrl,
+      documentContent.previewUrl,
+      configuredDownloadUrl,
+    ]
+      .map(safeContentHref)
+      .filter(Boolean);
+    const isPdfUrl = (value) => {
       try {
-        if (/\.pdf$/i.test(new URL(downloadCandidate, window.location.href).pathname)) {
-          downloadUrl = "";
-        }
+        return /\.pdf$/i.test(new URL(value, window.location.href).pathname);
       } catch {
-        downloadUrl = "";
+        return false;
+      }
+    };
+    const textUrl = previewCandidates.find((value) => !isPdfUrl(value)) || "";
+    const previewUrl = safeContentHref(documentContent.previewUrl);
+    const downloadUrl = configuredDownloadUrl || textUrl || previewUrl;
+    if (documentDownload) {
+      documentDownload.hidden = !downloadUrl;
+      if (downloadUrl) {
+        documentDownload.href = downloadUrl;
+        const label = document.querySelector("#law-document-download-label");
+        const fileType = isPdfUrl(downloadUrl) ? "PDF" : /\.txt$/i.test(new URL(downloadUrl, window.location.href).pathname) ? "TXT" : "dokumen";
+        if (label) label.textContent = `Unduh naskah ${fileType}`;
       }
     }
-    if (downloadUrl && documentDownload) documentDownload.href = downloadUrl;
-    if (documentDownload) documentDownload.hidden = !downloadUrl;
     const documentNote = document.querySelector("#law-document-note");
     if (documentNote && typeof documentContent.note === "string") {
       documentNote.textContent = documentContent.note;

@@ -1,9 +1,11 @@
 require("dotenv").config();
 
+const crypto = require("node:crypto");
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongoose = require("mongoose");
+const { verifyPassword } = require("./admin-auth");
 
 const app = express();
 const projectRoot = __dirname;
@@ -17,6 +19,8 @@ const contentCollections = {
   activities: "activities_content",
   organization: "organization_content",
 };
+const adminCookieName = "dpm_admin_session";
+const adminSessionDurationMs = 8 * 60 * 60 * 1000;
 
 function isValidNewsDate(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -47,20 +51,6 @@ app.use(
   }),
 );
 app.use(express.json({ limit: "2mb" }));
-app.use((req, res, next) => {
-  const hasLegacySession = req.headers.cookie
-    ?.split(";")
-    .some((cookie) => cookie.trim().startsWith("dpm_admin_session="));
-  if (hasLegacySession) {
-    res.clearCookie("dpm_admin_session", {
-      httpOnly: true,
-      secure: req.secure,
-      sameSite: "strict",
-      path: "/",
-    });
-  }
-  next();
-});
 
 const newsSchema = new mongoose.Schema(
   {
@@ -113,6 +103,130 @@ function readText(value, maxLength) {
   if (typeof value !== "string") return null;
   const text = value.trim();
   return text.length > 0 && text.length <= maxLength ? text : null;
+}
+
+function fixedTimeEqual(left, right) {
+  const leftDigest = crypto.createHash("sha256").update(left).digest();
+  const rightDigest = crypto.createHash("sha256").update(right).digest();
+  return crypto.timingSafeEqual(leftDigest, rightDigest);
+}
+
+function readAdminSessionToken(req) {
+  const cookie = req.headers.cookie
+    ?.split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`${adminCookieName}=`));
+  const token = cookie?.slice(adminCookieName.length + 1);
+  return token && /^[A-Za-z0-9_-]{43}$/.test(token) ? token : "";
+}
+
+function setAdminSessionCookie(req, res, token) {
+  res.cookie(adminCookieName, token, {
+    httpOnly: true,
+    secure: req.secure || process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: adminSessionDurationMs,
+  });
+}
+
+function clearAdminSessionCookie(req, res) {
+  res.clearCookie(adminCookieName, {
+    httpOnly: true,
+    secure: req.secure || process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+  });
+}
+
+function requireSameOrigin(req, res, next) {
+  const origin = req.get("origin");
+  const expectedOrigin = `${req.protocol}://${req.get("host")}`;
+  if (!origin || !fixedTimeEqual(origin, expectedOrigin)) {
+    return res.status(403).json({ error: "Permintaan lintas situs tidak diizinkan." });
+  }
+  next();
+}
+
+async function requireAdmin(req, res, next) {
+  const token = readAdminSessionToken(req);
+  if (!token) return res.status(401).json({ error: "Silakan masuk untuk melanjutkan." });
+
+  if (mongoose.connection.readyState !== 1) return databaseUnavailable(res);
+
+  const session = await mongoose.connection.collection("admin_sessions").findOne({
+    tokenHash: crypto.createHash("sha256").update(token).digest("hex"),
+    expiresAt: { $gt: new Date() },
+  });
+  if (!session) {
+    clearAdminSessionCookie(req, res);
+    return res.status(401).json({ error: "Sesi admin tidak valid atau sudah berakhir." });
+  }
+
+  const adminUser = session.userId
+    ? await mongoose.connection.collection("users").findOne(
+        { _id: session.userId, role: "admin", isActive: { $ne: false } },
+        { projection: { username: 1 } },
+      )
+    : null;
+  if (!adminUser) {
+    await mongoose.connection.collection("admin_sessions").deleteOne({ _id: session._id });
+    clearAdminSessionCookie(req, res);
+    return res.status(401).json({ error: "Akun admin tidak aktif atau tidak ditemukan." });
+  }
+
+  res.set("Cache-Control", "no-store");
+  res.locals.adminSession = session;
+  res.locals.adminUser = adminUser;
+  next();
+}
+
+function requireAdminCsrf(req, res, next) {
+  const token = req.get("x-csrf-token");
+  if (
+    !token ||
+    typeof res.locals.adminSession?.csrfToken !== "string" ||
+    !fixedTimeEqual(token, res.locals.adminSession.csrfToken)
+  ) {
+    return res.status(403).json({ error: "Token keamanan tidak valid. Muat ulang dashboard." });
+  }
+  next();
+}
+
+function isSafeImageUrl(value) {
+  if (!value) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
+function validateNewsInput(body) {
+  const label = readText(body?.label, 100);
+  const title = readText(body?.title, 200);
+  const description = readText(body?.description, 1000);
+  const date = readText(body?.date, 10);
+  const image = body?.image === undefined ? "" : body.image;
+  const alt = body?.alt === undefined ? "" : body.alt;
+
+  if (
+    !label ||
+    !title ||
+    !description ||
+    !date ||
+    !isValidNewsDate(date) ||
+    typeof image !== "string" ||
+    image.length > 2048 ||
+    typeof alt !== "string" ||
+    alt.length > 300 ||
+    !isSafeImageUrl(image)
+  ) {
+    return null;
+  }
+  return { label, title, description, date, image: image.trim(), alt: alt.trim() };
 }
 
 function databaseUnavailable(res) {
@@ -201,6 +315,169 @@ app.get("/api/content", async (req, res) => {
 
   res.json(await loadPageContent());
 });
+
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Terlalu banyak percobaan masuk. Coba kembali beberapa saat lagi." },
+});
+
+app.post("/api/admin/login", adminLoginLimiter, requireSameOrigin, async (req, res) => {
+  if (mongoose.connection.readyState !== 1) return databaseUnavailable(res);
+
+  const username =
+    typeof req.body?.username === "string" ? req.body.username.trim().toLowerCase() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const validUsername = /^[a-z0-9._-]{3,100}$/.test(username);
+  const validPasswordLength = Buffer.byteLength(password, "utf8") <= 1024;
+  const user = validUsername
+    ? await mongoose.connection.collection("users").findOne(
+        { username, role: "admin", isActive: { $ne: false } },
+        { projection: { username: 1, passwordHash: 1 } },
+      )
+    : null;
+  const passwordMatches = await verifyPassword(
+    validPasswordLength ? password : "",
+    user?.passwordHash,
+  );
+  if (!validUsername || !validPasswordLength || !user || !passwordMatches) {
+    return res.status(401).json({ error: "Nama pengguna atau kata sandi tidak sesuai." });
+  }
+
+  const token = crypto.randomBytes(32).toString("base64url");
+  const csrfToken = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + adminSessionDurationMs);
+  await mongoose.connection.collection("admin_sessions").insertOne({
+    userId: user._id,
+    tokenHash: crypto.createHash("sha256").update(token).digest("hex"),
+    csrfToken,
+    expiresAt,
+    createdAt: new Date(),
+  });
+  res.set("Cache-Control", "no-store");
+  setAdminSessionCookie(req, res, token);
+  return res.json({ username: user.username, csrfToken });
+});
+
+app.get("/api/admin/session", (req, res) => {
+  if (!readAdminSessionToken(req)) {
+    res.set("Cache-Control", "no-store");
+    return res.json({ authenticated: false });
+  }
+  return requireAdmin(req, res, () => {
+    res.json({
+      authenticated: true,
+      username: res.locals.adminUser.username,
+      csrfToken: res.locals.adminSession.csrfToken,
+    });
+  });
+});
+
+app.post(
+  "/api/admin/logout",
+  requireSameOrigin,
+  requireAdmin,
+  requireAdminCsrf,
+  async (req, res) => {
+    await mongoose.connection.collection("admin_sessions").deleteOne({
+      tokenHash: crypto.createHash("sha256").update(readAdminSessionToken(req)).digest("hex"),
+    });
+    clearAdminSessionCookie(req, res);
+    res.json({ message: "Anda telah keluar." });
+  },
+);
+
+app.get("/api/admin/news", requireAdmin, async (req, res) => {
+  const records = await News.find().sort({ date: -1, _id: -1 }).limit(500).lean();
+  res.json({
+    items: records.map((item) => ({
+      id: item._id.toString(),
+      label: item.label,
+      title: item.title,
+      description: item.description,
+      date: item.date,
+      image: item.image || "",
+      alt: item.alt || "",
+    })),
+  });
+});
+
+app.post(
+  "/api/admin/news",
+  requireSameOrigin,
+  requireAdmin,
+  requireAdminCsrf,
+  async (req, res) => {
+    const news = validateNewsInput(req.body);
+    if (!news) return res.status(400).json({ error: "Periksa kembali data berita." });
+    const item = await News.create(news);
+    return res.status(201).json({ id: item._id.toString(), message: "Berita berhasil disimpan." });
+  },
+);
+
+app.put(
+  "/api/admin/news/:id",
+  requireSameOrigin,
+  requireAdmin,
+  requireAdminCsrf,
+  async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ error: "Berita tidak ditemukan." });
+    }
+    const news = validateNewsInput(req.body);
+    if (!news) return res.status(400).json({ error: "Periksa kembali data berita." });
+    const item = await News.findByIdAndUpdate(req.params.id, news, {
+      new: true,
+      runValidators: true,
+    }).lean();
+    if (!item) return res.status(404).json({ error: "Berita tidak ditemukan." });
+    return res.json({ message: "Berita berhasil diperbarui." });
+  },
+);
+
+app.delete(
+  "/api/admin/news/:id",
+  requireSameOrigin,
+  requireAdmin,
+  requireAdminCsrf,
+  async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ error: "Berita tidak ditemukan." });
+    }
+    const item = await News.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ error: "Berita tidak ditemukan." });
+    return res.json({ message: "Berita berhasil dihapus." });
+  },
+);
+
+app.get("/api/admin/content", requireAdmin, async (req, res) => {
+  res.json(await loadPageContent());
+});
+
+app.put(
+  "/api/admin/content/:section",
+  requireSameOrigin,
+  requireAdmin,
+  requireAdminCsrf,
+  async (req, res) => {
+    const collectionName = Object.hasOwn(contentCollections, req.params.section)
+      ? contentCollections[req.params.section]
+      : null;
+    const content = req.body?.content;
+    if (!collectionName || !content || typeof content !== "object" || Array.isArray(content)) {
+      return res.status(400).json({ error: "Bagian atau format konten tidak valid." });
+    }
+
+    await mongoose.connection.collection(collectionName).updateOne(
+      { key: "main" },
+      { $set: { content } },
+      { upsert: true },
+    );
+    return res.json({ message: "Konten berhasil diperbarui." });
+  },
+);
 
 app.get("/api/media/:id", async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
@@ -314,6 +591,10 @@ async function startServer() {
     dbName: databaseName,
     serverSelectionTimeoutMS: 10000,
   });
+  await mongoose.connection.collection("users").createIndex({ username: 1 }, { unique: true });
+  await mongoose.connection
+    .collection("admin_sessions")
+    .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   console.info(`Connected to MongoDB database "${databaseName}".`);
 
   app.listen(port, () => {
