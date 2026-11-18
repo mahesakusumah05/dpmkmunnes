@@ -1,687 +1,895 @@
-const sections = {
-  homepage: {
-    title: "Beranda",
-    description: "Konten hero, kutipan, dan video.",
-    collection: "homepage_content",
-  },
-  legislation: {
-    title: "Undang-Undang",
-    description: "Daftar UU dan naskah. Cocokkan documentId di daftar dengan id naskah.",
-    collection: "legislation_content",
-  },
-  archives: {
-    title: "Pengarsipan",
-    description: "Arsip undang-undang dan kegiatan. Berita dikelola di tab Berita.",
-    collection: "archives_content",
-  },
-  activities: {
-    title: "Kegiatan",
-    description: "Anggaran, laporan pengawasan, dan galeri dokumentasi.",
-    collection: "activities_content",
-  },
-};
-
-const loginPanel = document.querySelector("#admin-login-panel");
-const dashboard = document.querySelector("#admin-dashboard");
-const loginForm = document.querySelector("#admin-login-form");
-const loginMessage = document.querySelector("#login-message");
-const editorPanel = document.querySelector("#content-editor-panel");
-const newsPanel = document.querySelector("#news-editor-panel");
-const contentEditor = document.querySelector("#content-json");
-const contentMessage = document.querySelector("#content-message");
-const homepageEditor = document.querySelector("#homepage-editor");
-const jsonEditorLabel = document.querySelector(".admin-json-label");
-const homepageMessage = document.querySelector("#homepage-message");
-const newsMessage = document.querySelector("#news-message");
+const loginPanel = document.querySelector("#login-panel");
+const loginForm = document.querySelector("#login-form");
+const loginStatus = document.querySelector("#login-status");
+const dashboard = document.querySelector("#dashboard");
+const dashboardStatus = document.querySelector("#dashboard-status");
+const logoutButton = document.querySelector("#logout-button");
 const newsForm = document.querySelector("#news-form");
-let activeSection = "homepage";
-let editingNewsId = "";
-let newsItems = [];
-let homepageContent = {};
+const newsList = document.querySelector("#news-list");
+const newsCount = document.querySelector("#news-count");
+const newsFormStatus = document.querySelector("#news-form-status");
+const contentSection = document.querySelector("#content-section");
+const contentJson = document.querySelector("#content-json");
+const structuredEditor = document.querySelector("#structured-editor");
+const jsonFallbackEditor = document.querySelector("#json-fallback-editor");
+const contentStatus = document.querySelector("#content-status");
+const newsItemsById = new Map();
+let activeRepeaters = new Map();
+let csrfToken = "";
+let siteContent = {};
 
-async function request(url, options = {}) {
-  const response = await fetch(url, {
-    credentials: "same-origin",
+function setStatus(element, message, isSuccess = false) {
+  element.textContent = message;
+  element.classList.toggle("is-success", isSuccess);
+}
+
+async function request(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (csrfToken && options.method && options.method !== "GET") {
+    headers.set("X-CSRF-Token", csrfToken);
+  }
+
+  const response = await fetch(path, {
     ...options,
-    headers: {
-      ...(options.body && !(options.body instanceof FormData)
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...options.headers,
-    },
+    headers,
+    credentials: "same-origin",
   });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || `Permintaan gagal (${response.status}).`);
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Respons server tidak dapat dibaca.");
+  }
+  if (!response.ok) {
+    if (response.status === 401 && csrfToken) {
+      showLogin();
+      setStatus(loginStatus, "Sesi berakhir. Silakan masuk kembali.");
+    }
+    const error = new Error(result.error || `Permintaan gagal (${response.status}).`);
+    error.status = response.status;
+    throw error;
+  }
   return result;
 }
 
-function setMessage(element, message, isError = false) {
-  element.textContent = message;
-  element.classList.toggle("is-error", isError);
-}
-
-function showLogin(message = "") {
-  dashboard.hidden = true;
+function showLogin() {
+  csrfToken = "";
   loginPanel.hidden = false;
-  setMessage(loginMessage, message);
+  dashboard.hidden = true;
+  logoutButton.hidden = true;
 }
 
 function showDashboard() {
   loginPanel.hidden = true;
   dashboard.hidden = false;
-  updateTab(activeSection);
+  logoutButton.hidden = false;
 }
 
-function updateTab(section) {
-  activeSection = section;
-  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
-    const active = button.dataset.adminTab === section;
-    button.classList.toggle("is-active", active);
-    button.setAttribute("aria-current", active ? "page" : "false");
-  });
-  const isNews = section === "news";
-  editorPanel.hidden = isNews;
-  newsPanel.hidden = !isNews;
-  if (isNews) loadNews();
-  else {
-    const info = sections[section];
-    document.querySelector("#editor-title").textContent = info.title;
-    document.querySelector("#editor-description").textContent = info.description;
-    document.querySelector("#editor-collection").textContent = info.collection;
-    const isHomepage = section === "homepage";
-    homepageEditor.hidden = !isHomepage;
-    contentEditor.hidden = isHomepage;
-    jsonEditorLabel.hidden = isHomepage;
-    document.querySelector("#save-content-button").hidden = isHomepage;
-    document.querySelector("#reload-content-button").hidden = isHomepage;
-    contentMessage.hidden = isHomepage;
-    loadContent();
-  }
+function formatNewsDate(date) {
+  const parsed = new Date(`${date}T00:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? date
+    : new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(parsed);
 }
 
-function addField(parent, labelText, value, { multiline = false, type = "text", placeholder = "" } = {}) {
-  const label = document.createElement("label");
-  label.append(document.createTextNode(labelText));
-  const input = document.createElement(multiline ? "textarea" : "input");
-  if (!multiline) input.type = type;
-  else input.rows = 3;
-  input.value = typeof value === "string" ? value : "";
-  input.placeholder = placeholder;
-  label.append(input);
-  parent.append(label);
-  return input;
-}
+function renderNews(items) {
+  newsItemsById.clear();
+  newsList.replaceChildren();
+  newsCount.textContent = `${items.length} berita`;
 
-function renderHomepageEditor(content) {
-  homepageContent = content && typeof content === "object" && !Array.isArray(content) ? content : {};
-  const hero = homepageContent.hero || {};
-  const youtube = homepageContent.youtube || {};
-  const quotes = homepageContent.quotes || {};
-
-  document.querySelector("#hero-eyebrow").value = hero.eyebrow || "";
-  document.querySelector("#hero-link-label").value = hero.linkLabel || "";
-  document.querySelector("#hero-link").value = hero.link || "";
-  document.querySelector("#hero-caption-label").value = hero.captionLabel || "";
-  document.querySelector("#hero-caption-title").value = hero.captionTitle || "";
-
-  document.querySelector("#youtube-url").value = youtube.url || "";
-  document.querySelector("#youtube-section-label").value = youtube.sectionLabel || "";
-  document.querySelector("#youtube-section-title").value = youtube.sectionTitle || "";
-  document.querySelector("#youtube-eyebrow").value = youtube.eyebrow || "";
-  document.querySelector("#youtube-title").value = youtube.title || "";
-  document.querySelector("#youtube-description").value = youtube.description || "";
-  document.querySelector("#youtube-empty-text").value = youtube.emptyLinkText || "";
-  document.querySelector("#youtube-note").value = youtube.placeholderNote || "";
-
-  document.querySelector("#quotes-section-label").value = quotes.sectionLabel || "";
-  document.querySelector("#quotes-section-title").value = quotes.sectionTitle || "";
-  document.querySelector("#quotes-section-description").value = quotes.sectionDescription || "";
-
-  const slides = document.querySelector("#hero-slides-editor");
-  slides.replaceChildren();
-  (Array.isArray(homepageContent.heroSlides) ? homepageContent.heroSlides : []).forEach((slide) => {
-    addHeroSlide(slide);
-  });
-  const quoteList = document.querySelector("#quotes-editor");
-  quoteList.replaceChildren();
-  (Array.isArray(quotes.items) ? quotes.items : []).forEach((quote) => addQuote(quote));
-}
-
-function addHeroSlide(slide = {}) {
-  const list = document.querySelector("#hero-slides-editor");
-  if (list.children.length >= 10) return;
-  const card = document.createElement("article");
-  card.className = "admin-repeat-card";
-  const heading = document.createElement("div");
-  heading.className = "admin-repeat-card-heading";
-  const title = document.createElement("strong");
-  title.textContent = `Slide ${list.children.length + 1}`;
-  const remove = document.createElement("button");
-  remove.type = "button";
-  remove.className = "admin-remove-button";
-  remove.textContent = "Hapus slide";
-  remove.addEventListener("click", () => {
-    if (card.dataset.previewUrl) URL.revokeObjectURL(card.dataset.previewUrl);
-    card.remove();
-    renumberCards(list, "Slide");
-  });
-  heading.append(title, remove);
-  card.append(heading);
-  const fields = document.createElement("div");
-  fields.className = "admin-field-grid";
-  const slideTitle = addField(fields, "Judul hero", slide.title);
-  slideTitle.name = "slide-title";
-  const imageLabel = document.createElement("label");
-  imageLabel.append(document.createTextNode("File gambar hero (JPG, PNG, atau WebP)"));
-  const imageInput = document.createElement("input");
-  imageInput.type = "file";
-  imageInput.name = "slide-image";
-  imageInput.accept = "image/jpeg,image/png,image/webp";
-  imageLabel.append(imageInput);
-  fields.append(imageLabel);
-  const imagePreview = document.createElement("div");
-  imagePreview.className = "admin-image-preview";
-  const preview = document.createElement("img");
-  preview.alt = "";
-  preview.hidden = !slide.image;
-  if (slide.image) preview.src = slide.image;
-  const previewNote = document.createElement("span");
-  previewNote.textContent = slide.image ? "Gambar saat ini" : "Belum ada gambar dipilih";
-  imagePreview.append(preview, previewNote);
-  imageLabel.append(imagePreview);
-  imageInput.addEventListener("change", () => {
-    const file = imageInput.files[0];
-    if (!file) return;
-    if (card.dataset.previewUrl) URL.revokeObjectURL(card.dataset.previewUrl);
-    card.dataset.previewUrl = URL.createObjectURL(file);
-    preview.src = card.dataset.previewUrl;
-    preview.hidden = false;
-    previewNote.textContent = `Gambar baru: ${file.name}`;
-  });
-  const description = addField(fields, "Deskripsi hero", slide.description, { multiline: true });
-  description.name = "slide-description";
-  card.dataset.image = typeof slide.image === "string" ? slide.image : "";
-  card.append(fields);
-  list.append(card);
-  renumberCards(list, "Slide");
-}
-
-function addQuote(quote = {}) {
-  const list = document.querySelector("#quotes-editor");
-  if (list.children.length >= 20) return;
-  const card = document.createElement("article");
-  card.className = "admin-repeat-card admin-quote-card";
-  const heading = document.createElement("div");
-  heading.className = "admin-repeat-card-heading";
-  const title = document.createElement("strong");
-  title.textContent = `Kutipan ${list.children.length + 1}`;
-  const remove = document.createElement("button");
-  remove.type = "button";
-  remove.className = "admin-remove-button";
-  remove.textContent = "Hapus kutipan";
-  remove.addEventListener("click", () => {
-    card.remove();
-    renumberCards(list, "Kutipan");
-  });
-  heading.append(title, remove);
-  card.append(heading);
-  const fields = document.createElement("div");
-  fields.className = "admin-field-grid";
-  addField(fields, "Isi kutipan", quote.text, { multiline: true });
-  addField(fields, "Nama / sumber", quote.author);
-  addField(fields, "Jabatan / keterangan", quote.role);
-  card.append(fields);
-  list.append(card);
-  renumberCards(list, "Kutipan");
-}
-
-function renumberCards(list, label) {
-  [...list.children].forEach((card, index) => {
-    card.querySelector(".admin-repeat-card-heading strong").textContent = `${label} ${index + 1}`;
-  });
-}
-
-async function loadContent() {
-  if (activeSection === "homepage") setMessage(homepageMessage, "Memuat konten...");
-  else setMessage(contentMessage, "Memuat konten...");
-  try {
-    const result = await request("/api/admin/content");
-    if (activeSection === "homepage") {
-      renderHomepageEditor(result.homepage);
-      setMessage(homepageMessage, "Konten beranda dimuat.");
-    } else {
-      contentEditor.value = JSON.stringify(result[activeSection] || {}, null, 2);
-      jsonImageFiles.clear();
-      renderJsonImageFields();
-      setMessage(contentMessage, "Konten dimuat. Simpan setelah selesai mengedit.");
-    }
-  } catch (error) {
-    if (activeSection === "homepage") setMessage(homepageMessage, error.message, true);
-    else setMessage(contentMessage, error.message, true);
-  }
-}
-
-function findImageFields(value, path = [], fields = []) {
-  if (!value || typeof value !== "object") return fields;
-  for (const [key, child] of Object.entries(value)) {
-    const childPath = [...path, key];
-    if (key === "image" && (typeof child === "string" || child == null)) {
-      fields.push({ path: childPath, value: typeof child === "string" ? child : "" });
-    } else if (child && typeof child === "object") {
-      findImageFields(child, childPath, fields);
-    }
-  }
-  return fields;
-}
-
-function getPathLabel(path) {
-  return path
-    .map((part) => (/^\d+$/.test(part) ? `[${Number(part) + 1}]` : part))
-    .join(".")
-    .replace(/\.\[/g, "");
-}
-
-function renderJsonImageFields() {
-  const section = document.querySelector("#json-image-fields");
-  const list = document.querySelector("#json-image-list");
-  list.querySelectorAll("img").forEach((image) => {
-    if (image.src.startsWith("blob:")) URL.revokeObjectURL(image.src);
-  });
-  list.replaceChildren();
-  if (!["archives", "activities"].includes(activeSection)) {
-    section.hidden = true;
-    return;
-  }
-  let content;
-  try {
-    content = JSON.parse(contentEditor.value);
-  } catch {
-    section.hidden = true;
-    return;
-  }
-  const fields = findImageFields(content);
-  section.hidden = !fields.length;
-  fields.forEach(({ path, value }) => {
-    const pathKey = JSON.stringify(path);
-    const card = document.createElement("div");
-    card.className = "admin-json-image-item";
-    const label = document.createElement("label");
-    label.className = "admin-json-image-label";
-    const title = document.createElement("strong");
-    title.textContent = getPathLabel(path);
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/jpeg,image/png,image/webp";
-    input.setAttribute("aria-label", `Pilih gambar untuk ${getPathLabel(path)}`);
-    const preview = document.createElement("img");
-    preview.alt = "";
-    const selectedFile = jsonImageFiles.get(pathKey);
-    const previewUrl = selectedFile ? URL.createObjectURL(selectedFile) : value;
-    preview.hidden = !previewUrl;
-    if (previewUrl) preview.src = previewUrl;
-    const status = document.createElement("span");
-    status.textContent = selectedFile
-      ? `File baru: ${selectedFile.name}`
-      : value
-        ? "Gambar saat ini"
-        : "Belum ada gambar";
-    input.addEventListener("change", () => {
-      const file = input.files[0];
-      if (!file) return;
-      if (!isAllowedImageFile(file)) {
-        input.value = "";
-        setMessage(contentMessage, "Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 5 MB.", true);
-        return;
-      }
-      jsonImageFiles.set(pathKey, file);
-      renderJsonImageFields();
-    });
-    label.append(title, input);
-    card.append(label, preview, status);
-    list.append(card);
-  });
-}
-
-function setValueAtPath(object, path, value) {
-  let target = object;
-  for (const segment of path.slice(0, -1)) target = target[segment];
-  target[path[path.length - 1]] = value;
-}
-
-async function saveHomepage() {
-  const read = (selector) => document.querySelector(selector).value.trim();
-  const hero = {
-    ...(homepageContent.hero || {}),
-    eyebrow: read("#hero-eyebrow"),
-    linkLabel: read("#hero-link-label"),
-    link: read("#hero-link"),
-    captionLabel: read("#hero-caption-label"),
-    captionTitle: read("#hero-caption-title"),
-  };
-  const slideCards = [...document.querySelector("#hero-slides-editor").children];
-  const heroSlides = [];
-  for (const card of slideCards) {
-    const title = card.querySelector('[name="slide-title"]').value.trim();
-    const description = card.querySelector('[name="slide-description"]').value.trim();
-    const imageInput = card.querySelector('[name="slide-image"]');
-    let image = card.dataset.image || "";
-    const file = imageInput.files[0];
-    if (file) {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        setMessage(homepageMessage, "Gambar hero harus berformat JPG, PNG, atau WebP.", true);
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage(homepageMessage, "Ukuran gambar hero maksimal 5 MB.", true);
-        return;
-      }
-    }
-    heroSlides.push({ title, description, image, file });
-  }
-  const youtube = {
-    ...(homepageContent.youtube || {}),
-    url: read("#youtube-url"),
-    sectionLabel: read("#youtube-section-label"),
-    sectionTitle: read("#youtube-section-title"),
-    eyebrow: read("#youtube-eyebrow"),
-    title: read("#youtube-title"),
-    description: read("#youtube-description"),
-    emptyLinkText: read("#youtube-empty-text"),
-    placeholderNote: read("#youtube-note"),
-  };
-  const quoteItems = [...document.querySelector("#quotes-editor").children].map((card) => {
-    const fields = card.querySelectorAll("input, textarea");
-    return {
-      text: fields[0].value.trim(),
-      author: fields[1].value.trim(),
-      role: fields[2].value.trim(),
-    };
-  });
-  const quotes = {
-    ...(homepageContent.quotes || {}),
-    sectionLabel: read("#quotes-section-label"),
-    sectionTitle: read("#quotes-section-title"),
-    sectionDescription: read("#quotes-section-description"),
-    items: quoteItems,
-  };
-  if (heroSlides.some((slide) => !slide.title || !slide.description || (!slide.image && !slide.file))) {
-    setMessage(homepageMessage, "Lengkapi judul, deskripsi, dan file gambar pada setiap slide hero.", true);
-    return;
-  }
-  if (quoteItems.some((quote) => !quote.text || !quote.author || !quote.role)) {
-    setMessage(homepageMessage, "Lengkapi isi, nama/sumber, dan jabatan pada setiap kutipan.", true);
-    return;
-  }
-  const content = { ...homepageContent, hero, heroSlides, youtube, quotes };
-  const button = document.querySelector("#save-homepage-button");
-  button.disabled = true;
-  try {
-    for (let index = 0; index < heroSlides.length; index += 1) {
-      const slide = heroSlides[index];
-      if (!slide.file) continue;
-      setMessage(homepageMessage, `Mengunggah gambar slide ${index + 1}...`);
-      const formData = new FormData();
-      formData.append("image", slide.file);
-      const uploaded = await request("/api/admin/media", {
-        method: "POST",
-        body: formData,
-      });
-      slide.image = uploaded.url;
-      delete slide.file;
-    }
-  } catch (error) {
-    button.disabled = false;
-    setMessage(homepageMessage, error.message, true);
-    return;
-  }
-  setMessage(homepageMessage, "Menyimpan konten beranda...");
-  try {
-    await request("/api/admin/content/homepage", {
-      method: "PUT",
-      body: JSON.stringify({ content }),
-    });
-    homepageContent = content;
-    setMessage(homepageMessage, "Tersimpan. Muat ulang halaman beranda situs untuk melihat perubahan.");
-  } catch (error) {
-    setMessage(homepageMessage, error.message, true);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function saveContent() {
-  let content;
-  try {
-    content = JSON.parse(contentEditor.value);
-  } catch {
-    setMessage(contentMessage, "Format JSON belum valid. Periksa koma, tanda kutip, dan kurung.", true);
-    return;
-  }
-  if (!content || Array.isArray(content) || typeof content !== "object") {
-    setMessage(contentMessage, "Isi harus berupa objek JSON.", true);
-    return;
-  }
-  const button = document.querySelector("#save-content-button");
-  button.disabled = true;
-  setMessage(contentMessage, "Menyimpan...");
-  try {
-    for (const [pathKey, file] of jsonImageFiles) {
-      if (!isAllowedImageFile(file)) {
-        throw new Error("Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 5 MB.");
-      }
-      setMessage(contentMessage, `Mengunggah gambar ${getPathLabel(JSON.parse(pathKey))}...`);
-      const imageUrl = await uploadImage(file);
-      setValueAtPath(content, JSON.parse(pathKey), imageUrl);
-    }
-    await request(`/api/admin/content/${activeSection}`, {
-      method: "PUT",
-      body: JSON.stringify({ content }),
-    });
-    contentEditor.value = JSON.stringify(content, null, 2);
-    jsonImageFiles.clear();
-    renderJsonImageFields();
-    setMessage(contentMessage, "Tersimpan. Muat ulang halaman situs untuk melihat perubahannya.");
-  } catch (error) {
-    setMessage(contentMessage, error.message, true);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function renderNews() {
-  const target = document.querySelector("#admin-news-list");
-  target.replaceChildren();
-  if (!newsItems.length) {
+  if (!items.length) {
     const empty = document.createElement("p");
-    empty.className = "admin-message";
-    empty.textContent = "Belum ada berita.";
-    target.append(empty);
+    empty.className = "empty-state";
+    empty.textContent = "Belum ada berita. Tambahkan berita pertama melalui formulir.";
+    newsList.append(empty);
     return;
   }
-  newsItems.forEach((item) => {
-    const row = document.createElement("article");
-    row.className = "admin-news-item";
+
+  items.forEach((item) => {
+    newsItemsById.set(item.id, item);
+    const card = document.createElement("article");
+    card.className = "news-item";
+
     const copy = document.createElement("div");
+    copy.className = "news-item-copy";
+    const meta = document.createElement("small");
+    meta.textContent = `${item.label} · ${formatNewsDate(item.date)}`;
     const title = document.createElement("h4");
     title.textContent = item.title;
-    const details = document.createElement("p");
-    details.textContent = `${item.label} · ${item.date}`;
-    copy.append(title, details);
+    const description = document.createElement("p");
+    description.textContent = item.description;
+    copy.append(meta, title, description);
+
     const actions = document.createElement("div");
-    actions.className = "admin-news-item-actions";
+    actions.className = "news-item-actions";
     const edit = document.createElement("button");
     edit.type = "button";
-    edit.textContent = "Edit";
-    edit.addEventListener("click", () => editNews(item));
+    edit.dataset.action = "edit";
+    edit.dataset.id = item.id;
+    edit.textContent = "Ubah";
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.dataset.deleteNews = item.id;
+    remove.className = "delete-news";
+    remove.dataset.action = "delete";
+    remove.dataset.id = item.id;
     remove.textContent = "Hapus";
-    remove.addEventListener("click", () => deleteNews(item));
     actions.append(edit, remove);
-    row.append(copy, actions);
-    target.append(row);
+    card.append(copy, actions);
+    newsList.append(card);
   });
 }
 
 async function loadNews() {
-  setMessage(newsMessage, "Memuat berita...");
-  try {
-    const result = await request("/api/admin/news");
-    newsItems = result.items || [];
-    renderNews();
-    setMessage(newsMessage, `${newsItems.length} berita dimuat.`);
-  } catch (error) {
-    setMessage(newsMessage, error.message, true);
-  }
+  const result = await request("/api/admin/news");
+  if (!Array.isArray(result.items)) throw new Error("Daftar berita dari server tidak valid.");
+  renderNews(result.items);
 }
 
-function editNews(item) {
-  editingNewsId = item.id;
-  newsForm.elements.imageFile.value = "";
-  for (const field of ["label", "title", "description", "date", "alt"]) {
-    newsForm.elements[field].value = item[field] || "";
+async function loadContent() {
+  const result = await request("/api/admin/content");
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    throw new Error("Konten situs dari server tidak valid.");
   }
-  newsForm.elements.existingImage.value = item.image || "";
-  updateNewsImagePreview(item.image || "");
-  newsForm.elements.id.value = item.id;
-  document.querySelector("#save-news-button").textContent = "Simpan perubahan";
-  document.querySelector("#cancel-news-edit").hidden = false;
-  newsForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  siteContent = result;
+  renderContentEditor();
+  setStatus(contentStatus, "");
 }
 
 function resetNewsForm() {
-  editingNewsId = "";
   newsForm.reset();
-  newsForm.elements.id.value = "";
-  newsForm.elements.existingImage.value = "";
-  updateNewsImagePreview("");
-  document.querySelector("#save-news-button").textContent = "Tambah berita";
-  document.querySelector("#cancel-news-edit").hidden = true;
+  document.querySelector("#news-id").value = "";
+  document.querySelector("#news-form-heading").textContent = "Tambah berita";
+  document.querySelector("#news-cancel-edit").hidden = true;
+  setStatus(newsFormStatus, "");
 }
 
-function updateNewsImagePreview(url, file) {
-  const container = document.querySelector("#news-image-preview");
-  const image = container.querySelector("img");
-  const caption = container.querySelector("span");
-  const remove = document.querySelector("#remove-news-image");
-  if (newsImagePreviewUrl) URL.revokeObjectURL(newsImagePreviewUrl);
-  newsImagePreviewUrl = file ? URL.createObjectURL(file) : "";
-  const src = newsImagePreviewUrl || url;
-  container.hidden = !src;
-  image.hidden = !src;
-  if (src) image.src = src;
-  caption.textContent = file ? `Gambar baru: ${file.name}` : "Gambar saat ini";
-  remove.hidden = !url && !file;
+function editNews(item) {
+  document.querySelector("#news-id").value = item.id;
+  document.querySelector("#news-label").value = item.label;
+  document.querySelector("#news-title").value = item.title;
+  document.querySelector("#news-description").value = item.description;
+  document.querySelector("#news-date").value = item.date;
+  document.querySelector("#news-image").value = item.image || "";
+  document.querySelector("#news-image-alt").value = item.alt || "";
+  document.querySelector("#news-form-heading").textContent = "Ubah berita";
+  document.querySelector("#news-cancel-edit").hidden = false;
+  setStatus(newsFormStatus, "");
+  document.querySelector("#news-form-heading").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-async function deleteNews(item) {
-  if (!window.confirm(`Hapus berita "${item.title}"?`)) return;
-  setMessage(newsMessage, "Menghapus berita...");
+function activatePanel(panelId) {
+  document.querySelectorAll(".dashboard-panel").forEach((panel) => {
+    panel.hidden = panel.id !== panelId;
+  });
+  document.querySelectorAll(".admin-tab").forEach((tab) => {
+    const active = tab.dataset.panel === panelId;
+    tab.classList.toggle("is-active", active);
+    if (active) tab.setAttribute("aria-current", "page");
+    else tab.removeAttribute("aria-current");
+  });
+}
+
+function createContentSection(parent, title, description) {
+  const section = document.createElement("section");
+  section.className = "content-form-section";
+  const heading = document.createElement("div");
+  heading.className = "content-form-heading";
+  const titleElement = document.createElement("h3");
+  titleElement.textContent = title;
+  const descriptionElement = document.createElement("p");
+  descriptionElement.textContent = description;
+  heading.append(titleElement, descriptionElement);
+  section.append(heading);
+  parent.append(section);
+  return section;
+}
+
+function safeEditorImageUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
   try {
-    await request(`/api/admin/news/${encodeURIComponent(item.id)}`, { method: "DELETE" });
-    setMessage(newsMessage, "Berita berhasil dihapus.");
-    await loadNews();
-  } catch (error) {
-    setMessage(newsMessage, error.message, true);
+    const url = new URL(value.trim(), window.location.origin);
+    if (url.protocol === "https:") return url.href;
+    if (url.origin === window.location.origin && !url.username && !url.password) return url.href;
+  } catch {
+    return "";
   }
+  return "";
+}
+
+function createContentField(field, value = "") {
+  const wrapper = document.createElement("div");
+  wrapper.className = `content-field${field.wide ? " content-field-wide" : ""}`;
+  const label = document.createElement("label");
+  label.textContent = field.label;
+
+  let control;
+  if (field.type === "textarea") {
+    control = document.createElement("textarea");
+    control.rows = field.rows || 3;
+  } else if (field.type === "select") {
+    control = document.createElement("select");
+    const options = [...(field.options || [])];
+    if (!options.some((option) => option.value === value)) {
+      options.unshift({ value, label: value || "Pilih" });
+    }
+    options.forEach((option) => {
+      const optionElement = document.createElement("option");
+      optionElement.value = option.value;
+      optionElement.textContent = option.label;
+      control.append(optionElement);
+    });
+  } else {
+    control = document.createElement("input");
+    control.type = field.type || "text";
+  }
+  control.value = value;
+  if (field.field) control.dataset.field = field.field;
+  if (field.path) control.dataset.path = field.path;
+  if (field.required) control.dataset.required = "true";
+  if (field.maxLength) control.maxLength = field.maxLength;
+  if (field.placeholder) control.placeholder = field.placeholder;
+  label.append(control);
+  wrapper.append(label);
+
+  if (field.help) {
+    const help = document.createElement("p");
+    help.className = "field-help";
+    help.textContent = field.help;
+    wrapper.append(help);
+  }
+
+  if (field.imagePreview) {
+    const preview = document.createElement("img");
+    preview.className = "content-image-preview";
+    preview.alt = "Pratinjau gambar";
+    preview.loading = "lazy";
+    preview.referrerPolicy = "no-referrer";
+    const updatePreview = () => {
+      const imageUrl = safeEditorImageUrl(control.value);
+      if (imageUrl) {
+        preview.src = imageUrl;
+        preview.hidden = false;
+      } else {
+        preview.removeAttribute("src");
+        preview.hidden = true;
+      }
+    };
+    control.addEventListener("input", updatePreview);
+    updatePreview();
+    wrapper.append(preview);
+  }
+  return wrapper;
+}
+
+function makeRepeater(parent, configuration) {
+  const section = createContentSection(parent, configuration.title, configuration.description);
+  const list = document.createElement("div");
+  list.className = "content-item-list";
+  const count = document.createElement("p");
+  count.className = "content-item-count";
+  const addButton = document.createElement("button");
+  addButton.className = "button button-outline content-add-button";
+  addButton.type = "button";
+  addButton.textContent = configuration.addLabel;
+
+  const maxItems = configuration.limit || 100;
+  activeRepeaters.set(configuration.key, list);
+
+  const updateList = () => {
+    [...list.children].forEach((card, index) => {
+      card.querySelector(".content-item-number").textContent = `${configuration.itemLabel} ${index + 1}`;
+    });
+    count.textContent = `${list.children.length} item`;
+    addButton.disabled = list.children.length >= maxItems;
+  };
+
+  const addItem = (item = {}) => {
+    const card = document.createElement("article");
+    card.className = "content-item-card";
+    card.dataset.original = JSON.stringify(item);
+    const header = document.createElement("div");
+    header.className = "content-item-header";
+    const itemNumber = document.createElement("h4");
+    itemNumber.className = "content-item-number";
+    const removeButton = document.createElement("button");
+    removeButton.className = "text-button content-remove-button";
+    removeButton.type = "button";
+    removeButton.textContent = "Hapus";
+    removeButton.addEventListener("click", () => {
+      card.remove();
+      updateList();
+      configuration.onChange?.();
+    });
+    header.append(itemNumber, removeButton);
+    card.append(header);
+
+    configuration.fields.forEach((field) => {
+      card.append(createContentField(field, item[field.field] ?? field.defaultValue ?? ""));
+    });
+    list.append(card);
+    updateList();
+    configuration.onChange?.();
+  };
+
+  configuration.items.forEach((item) => addItem(item));
+  addButton.addEventListener("click", () => {
+    if (list.children.length < maxItems) addItem(configuration.defaultItem || {});
+  });
+  section.append(list, count, addButton);
+  updateList();
+  return list;
+}
+
+function readRepeater(key, requiredFields = []) {
+  const list = activeRepeaters.get(key);
+  if (!list) return [];
+  const items = [];
+  [...list.children].forEach((card, index) => {
+    const controls = [...card.querySelectorAll("[data-field]")];
+    if (!controls.some((control) => control.value.trim())) return;
+
+    requiredFields.forEach((field) => {
+      const control = controls.find((candidate) => candidate.dataset.field === field.name);
+      if (!control?.value.trim()) {
+        throw new Error(`${field.label} wajib diisi pada ${key.replaceAll("-", " ")} ${index + 1}.`);
+      }
+    });
+
+    const item = JSON.parse(card.dataset.original || "{}");
+    controls.forEach((control) => {
+      const value = control.value.trim();
+      if (value) item[control.dataset.field] = value;
+      else delete item[control.dataset.field];
+    });
+    items.push(item);
+  });
+  return items;
+}
+
+function makeContentId(value, fallback) {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || fallback
+  );
+}
+
+function ensureUniqueIds(items, label) {
+  const ids = new Set();
+  items.forEach((item, index) => {
+    item.id = typeof item.id === "string" && item.id.trim()
+      ? item.id.trim()
+      : makeContentId(item.title || "", `${label}-${index + 1}`);
+    if (ids.has(item.id)) throw new Error(`ID ${label} "${item.id}" digunakan lebih dari sekali.`);
+    ids.add(item.id);
+  });
+  return items;
+}
+
+function cloneContent(value) {
+  return JSON.parse(JSON.stringify(value && typeof value === "object" && !Array.isArray(value) ? value : {}));
+}
+
+function applyPathFields(content) {
+  const result = cloneContent(content);
+  structuredEditor.querySelectorAll("[data-path]").forEach((control) => {
+    const path = control.dataset.path.split(".");
+    let target = result;
+    path.slice(0, -1).forEach((key) => {
+      if (!target[key] || typeof target[key] !== "object" || Array.isArray(target[key])) {
+        target[key] = {};
+      }
+      target = target[key];
+    });
+    target[path[path.length - 1]] = control.value.trim();
+  });
+  return result;
+}
+
+function renderHomepageEditor(content) {
+  const homepage = cloneContent(content);
+  if (Array.isArray(homepage.quotes)) homepage.quotes = { items: homepage.quotes };
+  else homepage.quotes = cloneContent(homepage.quotes);
+
+  const heroSection = createContentSection(
+    structuredEditor,
+    "Tampilan hero beranda",
+    "Atur teks utama, gambar latar, tautan, dan keterangan yang tampil pada bagian pembuka beranda.",
+  );
+  [
+    { path: "hero.eyebrow", label: "Label hero", maxLength: 100 },
+    { path: "hero.link", label: "Tautan tombol", maxLength: 2048, placeholder: "about.html" },
+    { path: "hero.linkLabel", label: "Teks tombol", maxLength: 100 },
+    { path: "hero.captionLabel", label: "Label keterangan", maxLength: 100 },
+    { path: "hero.captionTitle", label: "Judul keterangan", maxLength: 200 },
+  ].forEach((field) => {
+    heroSection.append(createContentField(field, field.path.split(".").reduce((value, key) => value?.[key], homepage)));
+  });
+  makeRepeater(structuredEditor, {
+    key: "homepage-heroSlides",
+    title: "Slide hero",
+    description: "Setiap slide menampilkan judul, deskripsi, dan gambar latar. Maksimal 10 slide.",
+    itemLabel: "Slide",
+    addLabel: "Tambah slide hero",
+    limit: 10,
+    items: Array.isArray(homepage.heroSlides) ? homepage.heroSlides : [],
+    defaultItem: {},
+    fields: [
+      { field: "title", label: "Judul", type: "textarea", rows: 2, maxLength: 200, required: true, wide: true },
+      { field: "description", label: "Deskripsi", type: "textarea", rows: 3, maxLength: 1000, required: true, wide: true },
+      {
+        field: "image",
+        label: "URL gambar atau path lokal",
+        maxLength: 2048,
+        required: true,
+        placeholder: "images/tugu-unnes.jpg",
+        help: "Gunakan gambar HTTPS atau file lokal yang tersedia di situs.",
+        imagePreview: true,
+      },
+    ],
+  });
+
+  const quoteSection = createContentSection(
+    structuredEditor,
+    "Kutipan beranda",
+    "Kutipan tampil bergantian pada bagian percakapan di beranda. Maksimal 20 kutipan.",
+  );
+  [
+    { path: "quotes.sectionLabel", label: "Label bagian", maxLength: 100 },
+    { path: "quotes.sectionTitle", label: "Judul bagian", type: "textarea", rows: 2, maxLength: 200 },
+    { path: "quotes.sectionDescription", label: "Deskripsi bagian", type: "textarea", rows: 2, maxLength: 500 },
+  ].forEach((field) => {
+    quoteSection.append(createContentField(field, field.path.split(".").reduce((value, key) => value?.[key], homepage)));
+  });
+  makeRepeater(structuredEditor, {
+    key: "homepage-quotes",
+    title: "Daftar kutipan",
+    description: "Lengkapi isi kutipan, nama, dan peran narasumber.",
+    itemLabel: "Kutipan",
+    addLabel: "Tambah kutipan",
+    limit: 20,
+    items: Array.isArray(homepage.quotes.items) ? homepage.quotes.items : [],
+    defaultItem: {},
+    fields: [
+      { field: "text", label: "Isi kutipan", type: "textarea", rows: 3, maxLength: 500, required: true, wide: true },
+      { field: "author", label: "Nama narasumber", maxLength: 120, required: true },
+      { field: "role", label: "Jabatan atau peran", maxLength: 120, required: true },
+    ],
+  });
+}
+
+function renderLegislationEditor(content) {
+  const legislation = cloneContent(content);
+  const documentOptions = [
+    { value: "", label: "Tidak ditautkan" },
+    ...(Array.isArray(legislation.documents)
+      ? legislation.documents
+          .filter((document) => document && typeof document.id === "string" && document.id.trim())
+          .map((document) => ({
+            value: document.id,
+            label: `${document.id} — ${document.title || "Naskah tanpa judul"}`,
+          }))
+      : []),
+  ];
+
+  const activeSection = createContentSection(
+    structuredEditor,
+    "Dokumen yang tampil",
+    "Pilih naskah yang dibuka pertama kali pada halaman Undang-Undang.",
+  );
+  activeSection.append(
+    createContentField(
+      {
+        path: "activeDocumentId",
+        label: "Naskah default",
+        type: "select",
+        options: documentOptions,
+      },
+      legislation.activeDocumentId || "",
+    ),
+  );
+
+  makeRepeater(structuredEditor, {
+    key: "legislation-documents",
+    title: "Naskah undang-undang",
+    description: "Atur judul dan tautan naskah. ID otomatis dibuat dari judul jika dikosongkan. Simpan dahulu agar ID tersedia pada daftar tautan.",
+    itemLabel: "Naskah",
+    addLabel: "Tambah naskah",
+    items: Array.isArray(legislation.documents)
+      ? legislation.documents.map((document) => ({
+          ...document,
+          previewUrl: document.previewUrl || document.textUrl || "",
+        }))
+      : [],
+    defaultItem: {},
+    fields: [
+      { field: "id", label: "ID naskah", maxLength: 100, placeholder: "Dibuat otomatis dari judul" },
+      { field: "title", label: "Judul naskah", maxLength: 300, required: true, wide: true },
+      { field: "badge", label: "Label dokumen", maxLength: 100 },
+      { field: "type", label: "Jenis dokumen", maxLength: 150 },
+      { field: "number", label: "Nomor dokumen", maxLength: 150 },
+      { field: "subject", label: "Perihal", type: "textarea", rows: 2, maxLength: 500, wide: true },
+      { field: "note", label: "Catatan", type: "textarea", rows: 2, maxLength: 500, wide: true },
+      {
+        field: "previewUrl",
+        label: "Path pratinjau naskah (TXT)",
+        maxLength: 2048,
+        placeholder: "UU-2026.txt",
+        help: "Gunakan path file TXT yang tersedia di situs, misalnya UU No. 6 Tahun 2025.txt.",
+        wide: true,
+      },
+      {
+        field: "downloadUrl",
+        label: "URL unduhan",
+        maxLength: 2048,
+        placeholder: "UU-2026.pdf atau UU-2026.txt",
+        help: "Gunakan path file yang tersedia di situs atau URL HTTPS.",
+        wide: true,
+      },
+    ],
+  });
+
+  makeRepeater(structuredEditor, {
+    key: "legislation-bills",
+    title: "Daftar undang-undang",
+    description: "Item ini mengisi daftar produk legislasi yang tampil di beranda dan halaman Undang-Undang.",
+    itemLabel: "Item",
+    addLabel: "Tambah undang-undang",
+    items: Array.isArray(legislation.bills) ? legislation.bills : [],
+    defaultItem: {},
+    fields: [
+      { field: "id", label: "ID daftar", maxLength: 100, placeholder: "Dibuat otomatis dari judul" },
+      { field: "label", label: "Label", maxLength: 150 },
+      { field: "title", label: "Judul", maxLength: 300, required: true, wide: true },
+      { field: "description", label: "Keterangan", type: "textarea", rows: 2, maxLength: 700, wide: true },
+      { field: "documentId", label: "Tautkan ke naskah", type: "select", options: documentOptions, wide: true },
+      { field: "status", label: "Status yang ditampilkan", maxLength: 120, placeholder: "Contoh: Dalam pembahasan" },
+      {
+        field: "statusType",
+        label: "Gaya status",
+        type: "select",
+        options: [
+          { value: "", label: "Standar" },
+          { value: "review", label: "Dalam pembahasan" },
+          { value: "planning", label: "Perencanaan" },
+        ],
+      },
+    ],
+  });
+
+  makeRepeater(structuredEditor, {
+    key: "legislation-history",
+    title: "Riwayat perubahan dan status",
+    description: "Catatan ini tampil pada halaman Perubahan & Status. Gunakan data perubahan yang sudah terverifikasi.",
+    itemLabel: "Perubahan",
+    addLabel: "Tambah catatan perubahan",
+    items: Array.isArray(legislation.history) ? legislation.history : [],
+    defaultItem: {},
+    fields: [
+      { field: "document", label: "Dokumen atau pasal", maxLength: 200, required: true },
+      { field: "topic", label: "Topik perubahan", maxLength: 200, required: true },
+      {
+        field: "statusType",
+        label: "Jenis status",
+        type: "select",
+        options: [
+          { value: "", label: "Dalam proses" },
+          { value: "in-progress", label: "Dalam proses" },
+          { value: "enacted", label: "Disahkan" },
+        ],
+      },
+      { field: "status", label: "Status", maxLength: 120, required: true },
+      { field: "updatedAt", label: "Tanggal pembaruan", maxLength: 100, placeholder: "Contoh: 19 November 2026" },
+      { field: "description", label: "Keterangan", type: "textarea", rows: 2, maxLength: 700, required: true, wide: true },
+    ],
+  });
+
+  makeRepeater(structuredEditor, {
+    key: "legislation-processStages",
+    title: "Tahapan legislasi",
+    description: "Tahapan ini tampil pada bagian akses dokumen di halaman Undang-Undang.",
+    itemLabel: "Tahap",
+    addLabel: "Tambah tahapan",
+    items: Array.isArray(legislation.processStages) ? legislation.processStages : [],
+    defaultItem: {},
+    fields: [
+      { field: "title", label: "Nama tahapan", maxLength: 150, required: true },
+      { field: "description", label: "Keterangan tahapan", type: "textarea", rows: 2, maxLength: 500, required: true, wide: true },
+    ],
+  });
+}
+
+function renderOrganizationEditor(content) {
+  const organization = cloneContent(content);
+  makeRepeater(structuredEditor, {
+    key: "organization-profiles",
+    title: "Profil pengurus",
+    description: "Setiap profil menampilkan foto, nama, dan jabatan pada halaman Struktur. Foto harus memakai URL HTTPS atau path gambar lokal yang tersedia.",
+    itemLabel: "Profil",
+    addLabel: "Tambah profil",
+    limit: 100,
+    items: Array.isArray(organization.profiles) ? organization.profiles : [],
+    defaultItem: {},
+    fields: [
+      {
+        field: "photo",
+        label: "URL foto atau path lokal",
+        maxLength: 2048,
+        required: true,
+        placeholder: "images/foto-pengurus.jpg",
+        help: "Foto harus dapat diakses situs.",
+        imagePreview: true,
+        wide: true,
+      },
+      { field: "name", label: "Nama", maxLength: 120, required: true },
+      { field: "position", label: "Jabatan", maxLength: 160, required: true },
+      { field: "photoAlt", label: "Teks alternatif foto", maxLength: 300, wide: true },
+    ],
+  });
+}
+
+function renderContentEditor() {
+  const section = contentSection.value;
+  const content = siteContent[section] || {};
+  const structuredSections = ["homepage", "legislation", "organization"];
+  const isStructured = structuredSections.includes(section);
+  structuredEditor.replaceChildren();
+  activeRepeaters = new Map();
+  structuredEditor.hidden = !isStructured;
+  jsonFallbackEditor.hidden = isStructured;
+  if (!isStructured) {
+    contentJson.value = JSON.stringify(content, null, 2);
+    setStatus(contentStatus, "");
+    return;
+  }
+
+  if (section === "homepage") renderHomepageEditor(content);
+  if (section === "legislation") renderLegislationEditor(content);
+  if (section === "organization") renderOrganizationEditor(content);
+  setStatus(contentStatus, "");
+}
+
+function collectStructuredContent(section) {
+  if (section === "homepage") {
+    const original = cloneContent(siteContent.homepage);
+    if (Array.isArray(original.quotes)) original.quotes = { items: original.quotes };
+    else original.quotes = cloneContent(original.quotes);
+    const content = applyPathFields(original);
+    const heroSlides = readRepeater("homepage-heroSlides", [
+      { name: "title", label: "Judul hero" },
+      { name: "description", label: "Deskripsi hero" },
+      { name: "image", label: "Gambar hero" },
+    ]);
+    heroSlides.forEach((slide, index) => {
+      if (!safeEditorImageUrl(slide.image)) {
+        throw new Error(`Gambar hero ${index + 1} harus berupa URL HTTPS atau path gambar lokal.`);
+      }
+    });
+    content.heroSlides = heroSlides;
+    content.quotes.items = readRepeater("homepage-quotes", [
+      { name: "text", label: "Isi kutipan" },
+      { name: "author", label: "Nama narasumber" },
+      { name: "role", label: "Jabatan atau peran" },
+    ]);
+    return content;
+  }
+
+  if (section === "legislation") {
+    const content = applyPathFields(siteContent.legislation);
+    content.documents = ensureUniqueIds(
+      readRepeater("legislation-documents", [{ name: "title", label: "Judul naskah" }]).map(
+        (document) => {
+          delete document.textUrl;
+          return document;
+        },
+      ),
+      "naskah",
+    );
+    content.bills = ensureUniqueIds(
+      readRepeater("legislation-bills", [{ name: "title", label: "Judul undang-undang" }]),
+      "undang-undang",
+    );
+    content.history = readRepeater("legislation-history", [
+      { name: "document", label: "Dokumen atau pasal" },
+      { name: "topic", label: "Topik perubahan" },
+      { name: "status", label: "Status" },
+      { name: "description", label: "Keterangan" },
+    ]);
+    content.processStages = readRepeater("legislation-processStages", [
+      { name: "title", label: "Nama tahapan" },
+      { name: "description", label: "Keterangan tahapan" },
+    ]);
+    return content;
+  }
+
+  if (section === "organization") {
+    const content = applyPathFields(siteContent.organization);
+    content.profiles = readRepeater("organization-profiles", [
+      { name: "photo", label: "Foto profil" },
+      { name: "name", label: "Nama" },
+      { name: "position", label: "Jabatan" },
+    ]);
+    content.profiles.forEach((profile, index) => {
+      if (!safeEditorImageUrl(profile.photo)) {
+        throw new Error(`Foto profil ${index + 1} harus berupa URL HTTPS atau path gambar lokal.`);
+      }
+    });
+    return content;
+  }
+  throw new Error("Formulir konten untuk bagian ini tidak tersedia.");
 }
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const submit = loginForm.querySelector("button[type=submit]");
-  submit.disabled = true;
-  setMessage(loginMessage, "Memeriksa akun...");
+  const submitButton = loginForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  setStatus(loginStatus, "");
   try {
     const formData = new FormData(loginForm);
-    await request("/api/admin/login", {
+    const result = await request("/api/admin/login", {
       method: "POST",
       body: JSON.stringify({
         username: formData.get("username"),
         password: formData.get("password"),
       }),
     });
+    csrfToken = result.csrfToken;
     loginForm.reset();
     showDashboard();
+    setStatus(dashboardStatus, "");
+    await Promise.all([loadNews(), loadContent()]);
   } catch (error) {
-    setMessage(loginMessage, error.message, true);
+    if (csrfToken) setStatus(dashboardStatus, error.message);
+    else setStatus(loginStatus, error.message);
   } finally {
-    submit.disabled = false;
+    submitButton.disabled = false;
   }
 });
 
-document.querySelectorAll("[data-admin-tab]").forEach((button) => {
-  button.addEventListener("click", () => updateTab(button.dataset.adminTab));
-});
-document.querySelector("#save-content-button").addEventListener("click", saveContent);
-document.querySelector("#reload-content-button").addEventListener("click", loadContent);
-document.querySelector("#save-homepage-button").addEventListener("click", saveHomepage);
-document.querySelector("#reload-homepage-button").addEventListener("click", loadContent);
-document.querySelector("#add-hero-slide").addEventListener("click", () => addHeroSlide());
-document.querySelector("#add-quote").addEventListener("click", () => addQuote());
-document.querySelector("#reload-news-button").addEventListener("click", loadNews);
-document.querySelector("#cancel-news-edit").addEventListener("click", resetNewsForm);
-document.querySelector("#remove-news-image").addEventListener("click", () => {
-  newsForm.elements.existingImage.value = "";
-  newsForm.elements.imageFile.value = "";
-  updateNewsImagePreview("");
-});
-newsForm.elements.imageFile.addEventListener("change", () => {
-  const file = newsForm.elements.imageFile.files[0];
-  if (!file) return;
-  if (!isAllowedImageFile(file)) {
-    newsForm.elements.imageFile.value = "";
-    setMessage(newsMessage, "Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 5 MB.", true);
-    return;
-  }
-  updateNewsImagePreview(newsForm.elements.existingImage.value, file);
-});
-contentEditor.addEventListener("input", () => {
-  jsonImageFiles.clear();
-  renderJsonImageFields();
-});
-newsForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setMessage(newsMessage, "Menyimpan berita...");
-  const formData = new FormData(newsForm);
-  const item = Object.fromEntries(
-    ["label", "title", "description", "date", "alt"].map((field) => [
-      field,
-      String(formData.get(field) || "").trim(),
-    ]),
-  );
-  try {
-    const imageFile = newsForm.elements.imageFile.files[0];
-    if (imageFile) {
-      if (!isAllowedImageFile(imageFile)) {
-        throw new Error("Pilih gambar JPG, PNG, atau WebP dengan ukuran maksimal 5 MB.");
-      }
-      setMessage(newsMessage, "Mengunggah gambar berita...");
-      item.image = await uploadImage(imageFile);
-    } else {
-      item.image = newsForm.elements.existingImage.value;
-    }
-    await request(editingNewsId ? `/api/admin/news/${encodeURIComponent(editingNewsId)}` : "/api/admin/news", {
-      method: editingNewsId ? "PUT" : "POST",
-      body: JSON.stringify(item),
-    });
-    resetNewsForm();
-    setMessage(newsMessage, "Berita berhasil disimpan.");
-    await loadNews();
-  } catch (error) {
-    setMessage(newsMessage, error.message, true);
-  }
-});
-
-document.querySelector("#logout-button").addEventListener("click", async () => {
+logoutButton.addEventListener("click", async () => {
+  logoutButton.disabled = true;
   try {
     await request("/api/admin/logout", { method: "POST", body: "{}" });
-    showLogin("Anda sudah keluar dari admin.");
+    showLogin();
+    setStatus(loginStatus, "Anda telah keluar.", true);
   } catch (error) {
-    setMessage(contentMessage, error.message, true);
+    if (error.status === 401) showLogin();
+    setStatus(loginStatus, error.message);
+  } finally {
+    logoutButton.disabled = false;
   }
 });
 
+newsForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submitButton = newsForm.querySelector('button[type="submit"]');
+  const itemId = document.querySelector("#news-id").value;
+  const formData = new FormData(newsForm);
+  const news = Object.fromEntries(formData.entries());
+  submitButton.disabled = true;
+  setStatus(newsFormStatus, "");
+  try {
+    await request(itemId ? `/api/admin/news/${encodeURIComponent(itemId)}` : "/api/admin/news", {
+      method: itemId ? "PUT" : "POST",
+      body: JSON.stringify(news),
+    });
+    resetNewsForm();
+    setStatus(newsFormStatus, "Berita berhasil disimpan dan dipublikasikan.", true);
+    await loadNews();
+  } catch (error) {
+    setStatus(newsFormStatus, error.message);
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+document.querySelector("#news-cancel-edit").addEventListener("click", resetNewsForm);
+
+newsList.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button || !newsList.contains(button)) return;
+  const item = newsItemsById.get(button.dataset.id);
+  if (!item) return;
+  if (button.dataset.action === "edit") return editNews(item);
+  if (button.dataset.action !== "delete" || !window.confirm(`Hapus berita “${item.title}”?`)) return;
+
+  button.disabled = true;
+  try {
+    await request(`/api/admin/news/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+    if (document.querySelector("#news-id").value === item.id) resetNewsForm();
+    await loadNews();
+  } catch (error) {
+    window.alert(error.message);
+    button.disabled = false;
+  }
+});
+
+document.querySelectorAll(".admin-tab").forEach((tab) => {
+  tab.addEventListener("click", async () => {
+    activatePanel(tab.dataset.panel);
+    if (tab.dataset.panel === "content-panel" && !Object.keys(siteContent).length) {
+      try {
+        await loadContent();
+      } catch (error) {
+        setStatus(contentStatus, error.message);
+      }
+    }
+  });
+});
+
+contentSection.addEventListener("change", renderContentEditor);
+
+document.querySelector("#save-content").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  let content;
+  try {
+    if (["homepage", "legislation", "organization"].includes(contentSection.value)) {
+      content = collectStructuredContent(contentSection.value);
+    } else {
+      content = JSON.parse(contentJson.value);
+      if (!content || typeof content !== "object" || Array.isArray(content)) {
+        setStatus(contentStatus, "Konten harus berupa objek JSON.");
+        return;
+      }
+    }
+  } catch (error) {
+    setStatus(contentStatus, error.message || "Periksa kembali data konten.");
+    return;
+  }
+
+  button.disabled = true;
+  setStatus(contentStatus, "");
+  try {
+    const section = contentSection.value;
+    await request(`/api/admin/content/${encodeURIComponent(section)}`, {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    });
+    siteContent[section] = content;
+    renderContentEditor();
+    setStatus(contentStatus, "Konten berhasil disimpan dan dipublikasikan.", true);
+  } catch (error) {
+    setStatus(contentStatus, error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.querySelector("#reload-content").addEventListener("click", async (event) => {
+  event.currentTarget.disabled = true;
+  try {
+    await loadContent();
+  } catch (error) {
+    setStatus(contentStatus, error.message);
+  } finally {
+    event.currentTarget.disabled = false;
+  }
+});
+
+document.querySelector("#login-password").addEventListener("input", () => setStatus(loginStatus, ""));
+
 request("/api/admin/session")
-  .then(() => showDashboard())
-  .catch((error) => showLogin(error.message.includes("Login admin belum") ? error.message : ""));
+  .then(async (session) => {
+    if (!session.authenticated) {
+      showLogin();
+      return;
+    }
+    csrfToken = session.csrfToken;
+    showDashboard();
+    await Promise.all([loadNews(), loadContent()]);
+  })
+  .catch((error) => {
+    if (csrfToken && error.status !== 401) {
+      showDashboard();
+      setStatus(dashboardStatus, error.message);
+    } else {
+      showLogin();
+      if (error.status !== 401) setStatus(loginStatus, error.message);
+    }
+  });

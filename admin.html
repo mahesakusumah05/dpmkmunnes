@@ -1,138 +1,141 @@
 <!doctype html>
 <html lang="id">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Admin Konten · DPM KM UNNES</title>
-    <link rel="stylesheet" href="styles.css" />
+    <meta name="theme-color" content="#0B1849" />
+    <title>Dashboard Admin — DPM KM UNNES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="admin.css" />
     <script src="admin.js" defer></script>
   </head>
-  <body class="admin-body">
-    <main class="admin-shell">
-      <header class="admin-header">
-        <a href="index.html" class="admin-brand">DPM KM UNNES <span>ADMIN KONTEN</span></a>
-        <a href="index.html" class="admin-public-link">Lihat situs ↗</a>
-      </header>
+  <body>
+    <a class="skip-link" href="#main-content">Lewati ke konten</a>
+    <header class="admin-header">
+      <a class="admin-brand" href="index.html">
+        <img src="images/unnes-logo.png" alt="" />
+        <span><strong>DPM KM UNNES</strong><small>Panel pengelolaan</small></span>
+      </a>
+      <div class="admin-header-actions">
+        <a class="site-link" href="index.html">Lihat situs <span aria-hidden="true">↗</span></a>
+        <button class="button button-outline" id="logout-button" type="button" hidden>Keluar</button>
+      </div>
+    </header>
 
-      <section class="admin-login-card" id="admin-login-panel">
-        <p class="eyebrow">Area pengelola</p>
-        <h1>Masuk ke admin</h1>
-        <p>Masuk menggunakan akun admin yang tersimpan di backend.</p>
-        <form id="admin-login-form">
-          <label>Nama pengguna<input name="username" autocomplete="username" required /></label>
-          <label>Kata sandi<input name="password" type="password" autocomplete="current-password" required /></label>
-          <button class="admin-button admin-button-primary" type="submit">Masuk</button>
+    <main id="main-content" class="admin-main">
+      <section class="login-panel panel" id="login-panel" aria-labelledby="login-title">
+        <p class="eyebrow">Area terbatas</p>
+        <h1 id="login-title">Masuk ke dashboard.</h1>
+        <p class="intro-copy">Gunakan akun admin yang sudah dibuat untuk database.</p>
+        <form id="login-form">
+          <label for="login-username">Nama pengguna</label>
+          <input id="login-username" name="username" autocomplete="username" maxlength="100" required />
+          <label for="login-password">Kata sandi</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+          <p class="form-status" id="login-status" role="status" aria-live="polite"></p>
+          <button class="button button-primary" type="submit">Masuk <span aria-hidden="true">→</span></button>
         </form>
-        <p class="admin-message" id="login-message" role="status"></p>
       </section>
 
-      <section id="admin-dashboard" hidden>
-        <div class="admin-title-row">
-          <div><p class="eyebrow">Pengelolaan situs</p><h1>Konten halaman</h1></div>
-          <button class="admin-button admin-button-outline" id="logout-button" type="button">Keluar</button>
+      <section class="dashboard" id="dashboard" hidden>
+        <div class="dashboard-heading">
+          <div>
+            <p class="eyebrow">Ruang kerja admin</p>
+            <h1>Kelola informasi situs.</h1>
+            <p class="intro-copy">Perubahan konten akan langsung tampil pada situs publik.</p>
+          </div>
+          <span class="session-label"><i aria-hidden="true"></i> Sesi terlindungi</span>
         </div>
-        <p class="admin-intro">Pilih bagian untuk mengubah datanya. Perubahan disimpan ke koleksi Atlas terkait dan langsung tersedia melalui API situs.</p>
+        <p class="form-status dashboard-status" id="dashboard-status" role="status" aria-live="polite"></p>
 
-        <nav class="admin-tabs" aria-label="Bagian konten">
-          <button type="button" class="is-active" data-admin-tab="homepage">Beranda</button>
-          <button type="button" data-admin-tab="legislation">Undang-Undang</button>
-          <button type="button" data-admin-tab="archives">Pengarsipan</button>
-          <button type="button" data-admin-tab="activities">Kegiatan</button>
-          <button type="button" data-admin-tab="news">Berita</button>
+        <nav class="admin-tabs" aria-label="Bagian dashboard">
+          <button class="admin-tab is-active" type="button" data-panel="news-panel" aria-current="page">Berita</button>
+          <button class="admin-tab" type="button" data-panel="content-panel">Konten halaman</button>
         </nav>
 
-        <section class="admin-panel" id="content-editor-panel">
-          <div class="admin-panel-heading">
-            <div><h2 id="editor-title">Beranda</h2><p id="editor-description">Konten hero, kutipan, dan video.</p></div>
-            <span class="admin-collection" id="editor-collection">homepage_content</span>
-          </div>
-          <div class="admin-homepage-editor" id="homepage-editor" hidden>
-            <section class="admin-form-section">
-              <div class="admin-form-section-heading"><div><h3>Tampilan Hero</h3><p>Teks tombol dan informasi kecil pada area pembuka halaman.</p></div></div>
-              <div class="admin-field-grid">
-                <label>Kalimat kecil di atas judul<input id="hero-eyebrow" maxlength="160" /></label>
-                <label>Teks tombol<input id="hero-link-label" maxlength="100" /></label>
-                <label>Alamat tujuan tombol<input id="hero-link" maxlength="500" /></label>
-                <label>Label informasi di pojok<input id="hero-caption-label" maxlength="100" /></label>
-                <label class="admin-field-wide">Teks informasi di pojok<input id="hero-caption-title" maxlength="200" /></label>
-              </div>
-            </section>
-            <section class="admin-form-section">
-              <div class="admin-form-section-heading"><div><h3>Slide Hero</h3><p>Setiap slide berisi judul, deskripsi, dan file gambar yang diunggah.</p></div><button class="admin-button admin-button-outline" id="add-hero-slide" type="button">Tambah slide</button></div>
-              <div class="admin-repeat-list" id="hero-slides-editor"></div>
-            </section>
-            <section class="admin-form-section">
-              <div class="admin-form-section-heading"><div><h3>Video</h3><p>Masukkan tautan video YouTube. Tampilan embed akan mengikuti tautan ini.</p></div></div>
-              <div class="admin-field-grid">
-                <label class="admin-field-wide">URL video YouTube<input id="youtube-url" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label>
-                <label>Label bagian<input id="youtube-section-label" maxlength="100" /></label>
-                <label>Judul bagian<input id="youtube-section-title" maxlength="160" /></label>
-                <label>Label kecil video<input id="youtube-eyebrow" maxlength="100" /></label>
-                <label>Judul video<input id="youtube-title" maxlength="200" /></label>
-                <label class="admin-field-wide">Deskripsi video<textarea id="youtube-description" rows="3" maxlength="1000"></textarea></label>
-                <label class="admin-field-wide">Teks jika tautan belum tersedia<input id="youtube-empty-text" maxlength="200" /></label>
-                <label class="admin-field-wide">Catatan pemutar video<input id="youtube-note" maxlength="300" /></label>
-              </div>
-            </section>
-            <section class="admin-form-section">
-              <div class="admin-form-section-heading"><div><h3>Suara Parlemen</h3><p>Atur judul bagian dan kutipan yang berputar di halaman.</p></div><button class="admin-button admin-button-outline" id="add-quote" type="button">Tambah kutipan</button></div>
-              <div class="admin-field-grid admin-quotes-heading">
-                <label>Label bagian<input id="quotes-section-label" maxlength="100" /></label>
-                <label>Judul bagian<input id="quotes-section-title" maxlength="160" /></label>
-                <label class="admin-field-wide">Deskripsi bagian<input id="quotes-section-description" maxlength="300" /></label>
-              </div>
-              <div class="admin-repeat-list" id="quotes-editor"></div>
-            </section>
-            <div class="admin-actions">
-              <button class="admin-button admin-button-primary" id="save-homepage-button" type="button">Simpan perubahan beranda</button>
-              <button class="admin-button admin-button-outline" id="reload-homepage-button" type="button">Muat ulang</button>
-              <p class="admin-message" id="homepage-message" role="status"></p>
+        <section class="dashboard-panel" id="news-panel" aria-labelledby="news-heading">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Publikasi</p>
+              <h2 id="news-heading">Kelola berita</h2>
             </div>
+            <span class="item-count" id="news-count">Memuat berita…</span>
           </div>
-          <label class="admin-json-label" for="content-json">Data konten <span>Format JSON</span></label>
-          <textarea id="content-json" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
-          <section class="admin-json-images" id="json-image-fields" hidden>
-            <div class="admin-image-section-heading"><strong>Gambar pada bagian ini</strong><span>Unggah file JPG, PNG, atau WebP (maksimal 5 MB).</span></div>
-            <div id="json-image-list"></div>
-          </section>
-          <div class="admin-actions">
-            <button class="admin-button admin-button-primary" id="save-content-button" type="button">Simpan perubahan</button>
-            <button class="admin-button admin-button-outline" id="reload-content-button" type="button">Muat ulang</button>
-            <p class="admin-message" id="content-message" role="status"></p>
+          <div class="news-layout">
+            <form class="editor-form panel" id="news-form">
+              <div class="editor-form-heading">
+                <h3 id="news-form-heading">Tambah berita</h3>
+                <button class="text-button" id="news-cancel-edit" type="button" hidden>Batal</button>
+              </div>
+              <input id="news-id" type="hidden" />
+              <label for="news-label">Label</label>
+              <input id="news-label" name="label" maxlength="100" placeholder="Berita DPM KM UNNES" required />
+              <label for="news-title">Judul</label>
+              <input id="news-title" name="title" maxlength="200" required />
+              <label for="news-description">Ringkasan</label>
+              <textarea id="news-description" name="description" rows="4" maxlength="1000" required></textarea>
+              <div class="form-row">
+                <div><label for="news-date">Tanggal</label><input id="news-date" name="date" type="date" required /></div>
+                <div><label for="news-image-alt">Teks alternatif gambar</label><input id="news-image-alt" name="alt" maxlength="300" /></div>
+              </div>
+              <label for="news-image">URL gambar (opsional)</label>
+              <input id="news-image" name="image" type="url" maxlength="2048" placeholder="https://…" />
+              <p class="field-help">Gunakan gambar HTTPS yang dapat diakses publik.</p>
+              <p class="form-status" id="news-form-status" role="status" aria-live="polite"></p>
+              <button class="button button-primary" type="submit">Simpan berita <span aria-hidden="true">→</span></button>
+            </form>
+
+            <div class="news-list-panel">
+              <div class="news-list-heading"><h3>Berita terbit</h3><span>Terbaru</span></div>
+              <div class="news-list" id="news-list" aria-live="polite">
+                <p class="empty-state">Memuat berita dari basis data…</p>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section class="admin-panel" id="news-editor-panel" hidden>
-          <div class="admin-panel-heading">
-            <div><h2>Berita</h2><p>Tambah, ubah, atau hapus berita yang ditampilkan di situs.</p></div>
-            <span class="admin-collection">news</span>
+        <section class="dashboard-panel" id="content-panel" aria-labelledby="content-heading" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Konten terstruktur</p>
+              <h2 id="content-heading">Kelola konten halaman</h2>
+            </div>
           </div>
-          <form id="news-form" class="admin-news-form">
-            <input name="id" type="hidden" />
-            <label>Label<input name="label" maxlength="100" required /></label>
-            <label>Judul<input name="title" maxlength="200" required /></label>
-            <label class="admin-news-wide">Deskripsi<textarea name="description" maxlength="1000" rows="3" required></textarea></label>
-            <label>Tanggal<input name="date" type="date" required /></label>
-            <label>File gambar (JPG, PNG, atau WebP)<input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" /></label>
-            <input name="existingImage" type="hidden" />
-            <div class="admin-news-wide admin-news-image-preview" id="news-image-preview" hidden>
-              <img alt="" />
-              <span>Pratinjau gambar</span>
-              <button class="admin-remove-button" id="remove-news-image" type="button" hidden>Hapus gambar</button>
+          <div class="content-editor panel">
+            <label for="content-section">Pilih bagian</label>
+            <select id="content-section">
+              <option value="homepage">Beranda</option>
+              <option value="legislation">Undang-undang</option>
+              <option value="archives">Pengarsipan</option>
+              <option value="activities">Kegiatan</option>
+              <option value="organization">Struktur organisasi</option>
+            </select>
+            <p class="field-help" id="content-editor-help">
+              Beranda, Undang-undang, dan Struktur memakai formulir yang mengikuti tampilan situs. Bagian lain tetap dapat dikelola sebagai JSON.
+            </p>
+            <div id="structured-editor" class="structured-editor" hidden></div>
+            <div id="json-fallback-editor" hidden>
+              <label for="content-json">Data konten (JSON)</label>
+              <textarea id="content-json" class="json-editor" spellcheck="false" rows="24" aria-describedby="content-format-help"></textarea>
+              <p class="field-help" id="content-format-help">Simpan hanya data yang sudah diverifikasi dan boleh dipublikasikan.</p>
             </div>
-            <label class="admin-news-wide">Teks alternatif gambar<input name="alt" maxlength="300" /></label>
-            <div class="admin-actions admin-news-wide">
-              <button class="admin-button admin-button-primary" id="save-news-button" type="submit">Tambah berita</button>
-              <button class="admin-button admin-button-outline" id="cancel-news-edit" type="button" hidden>Batal edit</button>
-              <p class="admin-message" id="news-message" role="status"></p>
+            <p class="form-status" id="content-status" role="status" aria-live="polite"></p>
+            <div class="editor-actions">
+              <button class="button button-primary" id="save-content" type="button">Simpan konten <span aria-hidden="true">→</span></button>
+              <button class="button button-outline" id="reload-content" type="button">Muat ulang</button>
             </div>
-          </form>
-          <div class="admin-news-list-heading"><h3>Daftar berita</h3><button class="admin-button admin-button-outline" id="reload-news-button" type="button">Muat ulang</button></div>
-          <div class="admin-news-list" id="admin-news-list"></div>
+          </div>
         </section>
+
+        <p class="dashboard-notice">Dashboard ini tidak menampilkan atau mengelola kiriman aspirasi mahasiswa.</p>
       </section>
     </main>
+    <footer class="admin-footer"><span>© 2026 DPM KM UNNES</span><span>Transparansi · Representasi · Pelayanan</span></footer>
   </body>
 </html>
