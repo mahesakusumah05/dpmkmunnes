@@ -985,3 +985,239 @@ body { background: #F3E6D5; }
   .org-profile-details h3 { font-size: 14px; }
   .org-profile-empty { padding: 18px; font-size: 11px; }
 }
+
+:root {
+  --surface: #fffdfa;
+  --line: #dfcfbd;
+  --muted: #59657b;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 8% 10%, rgba(255,255,255,.42), transparent 28rem),
+    #F3E6D5;
+}
+
+body::before {
+  position: fixed;
+  top: 52%;
+  right: -5.5rem;
+  z-index: -1;
+  width: clamp(170px, 21vw, 290px);
+  aspect-ratio: 360 / 520;
+  background: url("images/ornament-gunungan.svg") center / contain no-repeat;
+  content: "";
+  opacity: .045;
+  pointer-events: none;
+  transform: perspective(900px) rotateY(-18deg) rotateZ(7deg);
+  animation: ornament-drift 14s ease-in-out infinite alternate;
+}
+
+.topline {
+  background: linear-gradient(105deg, #08143d, #17285d 56%, #0B1849);
+}
+
+.news-ticker-viewport {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 96%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 96%, transparent);
+}
+
+.site-header {
+  background: rgba(255,253,248,.9);
+  box-shadow: 0 8px 26px rgba(11,24,73,.055);
+}
+
+.brand-emblem { transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+.brand:hover .brand-emblem { transform: rotate(-4deg) scale(1.04); }
+
+.hero {
+  min-height: clamp(590px, 72vh, 760px);
+  isolation: isolate;
+}
+
+.hero::before {
+  position: absolute;
+  top: 50%;
+  left: clamp(8px, 5vw, 76px);
+  z-index: 1;
+  width: clamp(180px, 22vw, 300px);
+  aspect-ratio: 360 / 520;
+  background: url("images/ornament-gunungan.svg") center / contain no-repeat;
+  content: "";
+  filter: drop-shadow(20px 24px 24px rgba(2,8,30,.3));
+  opacity: .5;
+  pointer-events: none;
+  transform: translateY(-45%) perspective(1000px) rotateY(18deg) rotateZ(-4deg);
+  animation: ornament-float 8s ease-in-out infinite alternate;
+}
+
+.hero::after {
+  position: absolute;
+  top: 8%;
+  right: 7%;
+  width: clamp(250px, 34vw, 470px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(243,230,213,.2);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+  box-shadow: 0 0 0 38px rgba(243,230,213,.035), 0 0 0 76px rgba(243,230,213,.025);
+  animation: hero-ring-breathe 9s ease-in-out infinite alternate;
+}
+
+.hero-content { animation: hero-content-arrive .8s cubic-bezier(.16,1,.3,1) both; }
+.hero h1 { text-wrap: balance; }
+.hero-caption {
+  border-top-left-radius: 18px;
+  background: linear-gradient(120deg, #0B1849, #182a61);
+}
+
+.page-hero::before {
+  background-image:
+    linear-gradient(90deg, rgba(28,24,23,.82), rgba(28,24,23,.38)),
+    url("images/ornament-gunungan.svg");
+  background-repeat: no-repeat;
+  background-position: center, right clamp(24px, 7vw, 88px) center;
+  background-size: cover, clamp(140px, 17vw, 220px) auto;
+}
+
+.button,
+.search-inner button {
+  border-radius: 999px;
+}
+
+.section-heading .eyebrow,
+.panel-heading .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.section-heading .eyebrow::before,
+.panel-heading .eyebrow::before {
+  width: 20px;
+  height: 2px;
+  flex: 0 0 auto;
+  background: #b69055;
+  content: "";
+}
+
+.news-card,
+.archive-card,
+.service-card,
+.activity-card,
+.oversight-card,
+.process-grid article,
+.pillar-card,
+.quick-link,
+.video-feature,
+.aspiration-form,
+.law-document,
+.budget-document-frame,
+.person-card,
+.org-profile-card {
+  border-radius: 16px;
+}
+
+.news-card,
+.archive-card,
+.activity-card,
+.oversight-card,
+.process-grid article,
+.pillar-card,
+.video-feature,
+.aspiration-form,
+.law-document,
+.budget-document-frame,
+.org-profile-card {
+  box-shadow: 0 10px 28px rgba(11,24,73,.055);
+  transition:
+    transform .38s cubic-bezier(.16,1,.3,1),
+    box-shadow .38s ease,
+    border-color .25s ease;
+}
+
+.news-card:hover,
+.archive-card:hover,
+.activity-card:hover,
+.oversight-card:hover,
+.process-grid article:hover,
+.pillar-card:hover,
+.video-feature:hover,
+.aspiration-form:hover,
+.law-document:hover,
+.budget-document-frame:hover,
+.org-profile-card:hover {
+  border-color: rgba(11,24,73,.2);
+  box-shadow: 0 22px 48px rgba(11,24,73,.12);
+  transform: translateY(-5px);
+}
+
+.quick-link {
+  transition: background-color .25s ease, transform .3s cubic-bezier(.16,1,.3,1);
+}
+
+.quick-link:hover {
+  background-color: #fffdfa;
+  transform: translateY(-3px);
+}
+
+.site-footer {
+  background-image: radial-gradient(ellipse at 88% 0%, rgba(243,230,213,.08), transparent 35rem);
+}
+
+@keyframes hero-ring-breathe {
+  from { transform: scale(.96); opacity: .58; }
+  to { transform: scale(1.04); opacity: 1; }
+}
+
+@keyframes ornament-float {
+  from { translate: 0 8px; }
+  to { translate: 0 -8px; }
+}
+
+@keyframes ornament-drift {
+  from { translate: 0 10px; }
+  to { translate: 0 -10px; }
+}
+
+@media (max-width: 680px) {
+  .hero { min-height: 620px; }
+  .hero::after { top: 12%; right: -24%; width: 76vw; }
+  .hero::before { left: -42px; width: 176px; opacity: .35; }
+  .page-hero::before {
+    background-position: center, right 14px center;
+    background-size: cover, 118px auto;
+  }
+  body::before { right: -5rem; width: 180px; opacity: .03; }
+  .hero-content { animation-duration: .65s; }
+  .hero-caption { border-top-left-radius: 14px; }
+  .button { min-height: 46px; }
+  .talks-layout > *,
+  .talks-heading { min-width: 0; }
+  .talks-heading { grid-template-columns: minmax(0, 1fr) auto; }
+  .talks-heading h2,
+  .quote-card { min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::after { animation: none; }
+  .hero::before,
+  .page-hero::before,
+  body::before { animation: none; }
+  .hero-content { animation: none; }
+  .news-card:hover,
+  .archive-card:hover,
+  .activity-card:hover,
+  .oversight-card:hover,
+  .process-grid article:hover,
+  .pillar-card:hover,
+  .video-feature:hover,
+  .aspiration-form:hover,
+  .law-document:hover,
+  .budget-document-frame:hover,
+  .org-profile-card:hover,
+  .quick-link:hover { transform: none; }
+}

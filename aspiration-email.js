@@ -30,6 +30,10 @@ function createAspirationTransporter(environment = process.env) {
       host,
       port,
       secure: secureSetting ? secureSetting === "true" : port === 465,
+      dnsTimeout: 10_000,
+      connectionTimeout: 15_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
       auth: { user, pass: password },
       tls: { minVersion: "TLSv1.2" },
     }),
@@ -62,6 +66,28 @@ function aspirationDetails(aspiration) {
   return { text, html };
 }
 
+function emailFailureDetails(error, index) {
+  const details = { recipient: index === 0 ? "sender" : "admin" };
+  if (typeof error?.code === "string") {
+    details.code = error.code.replace(/[^a-z0-9_-]/gi, "").slice(0, 40);
+  }
+  if (Number.isInteger(error?.responseCode)) {
+    details.responseCode = error.responseCode;
+  }
+  if (typeof error?.command === "string") {
+    details.command = error.command.replace(/[^a-z ]/gi, "").slice(0, 32);
+  }
+  if (typeof error?.response === "string") {
+    const response = error.response
+      .replace(/[\r\n\t]+/g, " ")
+      .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, "[redacted-email]")
+      .replace(/\b(password|pass|token|secret)\s*[:=]\s*\S+/gi, "$1=[redacted]")
+      .slice(0, 240);
+    if (response) details.response = response;
+  }
+  return details;
+}
+
 async function sendAspirationEmails({ transporter, from, aspiration, adminEmails }) {
   const details = aspirationDetails(aspiration);
   const safeName = aspiration.fullName.replace(/[\r\n]+/g, " ").slice(0, 120);
@@ -92,6 +118,9 @@ async function sendAspirationEmails({ transporter, from, aspiration, adminEmails
     senderSent: results[0].status === "fulfilled",
     adminsSent: results.slice(1).filter((result) => result.status === "fulfilled").length,
     adminsTotal: adminEmails.length,
+    failures: results.flatMap((result, index) =>
+      result.status === "rejected" ? [emailFailureDetails(result.reason, index)] : [],
+    ),
   };
 }
 

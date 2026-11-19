@@ -580,7 +580,7 @@ app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
     message,
     consentAt: new Date(),
   });
-  const notifications = await sendAspirationEmails({
+  const { failures, ...notifications } = await sendAspirationEmails({
     transporter: mailSettings.transporter,
     from: mailSettings.from,
     aspiration: { fullName, campus, email, topic, message },
@@ -593,6 +593,7 @@ app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
       senderSent: notifications.senderSent,
       adminsSent: notifications.adminsSent,
       adminsTotal: notifications.adminsTotal,
+      failures,
     });
     return res.status(202).json({
       message: "Aspirasi tersimpan, tetapi sebagian email belum terkirim. Jangan kirim ulang; hubungi pengelola.",
