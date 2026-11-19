@@ -8,9 +8,8 @@ Situs disajikan oleh Express. Berita dimuat dari MongoDB Atlas; formulir aspiras
 2. Salin `.env.example` menjadi `.env`.
 3. Di MongoDB Atlas, buat pengguna database dengan peran `readWrite` hanya untuk database `dpm_km_unnes`, lalu izinkan alamat IP mesin ini di **Network Access**.
 4. Isi `MONGODB_URI` di `.env` dengan connection string dari **Connect → Drivers** di Atlas. Jangan memasukkan kredensial ke kode atau membagikannya melalui chat.
-5. Isi konfigurasi SMTP pada `.env` jika fitur email aspirasi akan digunakan.
-6. Jalankan `npm install`, lalu `npm run create-admin` untuk membuat akun dashboard. Perintah ini meminta nama pengguna, email, dan kata sandi secara lokal; kata sandi tidak ditampilkan saat diketik.
-7. Jalankan `npm run dev`. Buka `http://localhost:3000`.
+5. Jalankan `npm install`, lalu `npm run create-admin` untuk membuat akun dashboard. Perintah ini meminta nama pengguna, email, dan kata sandi secara lokal; kata sandi tidak ditampilkan saat diketik.
+6. Jalankan `npm run dev`. Buka `http://localhost:3000`.
 
 Server tidak akan berjalan tanpa koneksi MongoDB yang berhasil. Endpoint `/api/health` menunjukkan status koneksi database.
 
@@ -20,7 +19,7 @@ Akun dashboard disimpan pada koleksi `users` di database `dpm_km_unnes`; koleksi
 
 `MONGODB_URI` tetap diperlukan agar server dapat terhubung ke Atlas. Kredensial pada URI itu adalah kredensial pengguna database MongoDB, bukan username dan kata sandi untuk masuk ke dashboard.
 
-Dashboard dapat membuat, mengubah, dan menghapus berita. Formulir Beranda mengelola logo situs, slide hero, video YouTube, dan kutipan; bagian video tampil jika tautan video YouTube yang valid diisi. Formulir Undang-Undang mengelola daftar naskah, tautan dokumen, daftar legislasi, status, riwayat perubahan, dan tahapan; formulir Pengarsipan mengelola arsip undang-undang dan kegiatan beserta label, tanggal/tahun, format, tautan, dan gambar; formulir Kegiatan mengelola dokumen anggaran, tabel ringkasan, laporan pengawasan, serta galeri foto; formulir Struktur mengelola profil foto, nama, dan jabatan. Status daftar UU diberi warna merah untuk Perencanaan, kuning untuk Dalam pembahasan, dan hijau untuk Disahkan. Status riwayat perubahan diberi warna merah untuk Diajukan, kuning untuk Dalam proses, dan hijau untuk Disahkan. Perubahan konten langsung disimpan ke MongoDB dan ditampilkan di situs publik.
+Dashboard dapat membuat, mengubah, dan menghapus berita, termasuk ringkasan dan isi lengkap opsional. Pengunjung dapat membuka detail berita dalam dialog glass; berita lama yang belum memiliki isi lengkap tetap menampilkan ringkasannya. Formulir Beranda mengelola logo situs, slide hero, video YouTube, dan kutipan; bagian video tampil jika tautan video YouTube yang valid diisi. Formulir Undang-Undang mengelola daftar naskah, tautan dokumen, daftar legislasi, status, riwayat perubahan, dan tahapan; formulir Pengarsipan mengelola arsip undang-undang dan kegiatan beserta label, tanggal/tahun, format, tautan, dan gambar; formulir Kegiatan mengelola dokumen anggaran, tabel ringkasan, laporan pengawasan, serta galeri foto; formulir Struktur mengelola profil foto, nama, dan jabatan. Status daftar UU diberi warna merah untuk Perencanaan, kuning untuk Dalam pembahasan, dan hijau untuk Disahkan. Status riwayat perubahan diberi warna merah untuk Diajukan, kuning untuk Dalam proses, dan hijau untuk Disahkan. Perubahan konten langsung disimpan ke MongoDB dan ditampilkan di situs publik.
 
 Sesi admin disimpan di MongoDB, berlaku selama 8 jam, memakai cookie `HttpOnly`/`SameSite=Strict`, pemeriksaan origin, dan token CSRF. Percobaan login dibatasi. Kiriman aspirasi tidak tersedia di dashboard maupun endpoint admin. Jangan menaruh kredensial di browser atau repositori.
 
@@ -78,14 +77,12 @@ Gunakan URL HTTPS untuk gambar dan dokumen eksternal. Tautan relatif hanya untuk
 
 ## Aspirasi mahasiswa
 
-Formulir beranda mengirim data ke `POST /api/aspirations`. Kiriman disimpan di koleksi `aspirations` dan tidak ditampilkan kepada publik. Setelah tersimpan, sistem mengirim email konfirmasi berisi ucapan terima kasih dan rincian aspirasi kepada pengirim, serta email pemberitahuan dengan rincian yang sama ke setiap akun admin aktif di koleksi `users` yang memiliki alamat `email` valid. Fitur ini memerlukan konfigurasi `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, dan `SMTP_PASS`, serta setidaknya satu email admin. `SMTP_FROM` bersifat opsional dan memakai `SMTP_USER` jika kosong. Jika prasyarat belum siap, aspirasi tidak disimpan dan formulir menampilkan pesan; jika pengiriman email gagal setelah tersimpan, formulir memberi peringatan agar pengirim tidak mengirim ulang. Waktu tunggu DNS dan koneksi SMTP dibatasi agar formulir tidak menggantung tanpa batas. Untuk Gmail, gunakan `smtp.gmail.com` dan App Password, bukan kata sandi akun. Endpoint memvalidasi isi dan membatasi kiriman hingga 10 per alamat IP per jam. Batasi akses koleksi ini kepada staf yang berwenang melalui Atlas.
-
-Jika formulir menyatakan aspirasi tersimpan tetapi email gagal, jangan kirim ulang. Periksa Railway deployment logs untuk `Email aspirasi tidak terkirim seluruhnya`: `senderSent` menunjukkan status email pengirim, sedangkan `adminsSent` dan `adminsTotal` menunjukkan status email admin. Versi server terbaru juga mencatat kode SMTP, perintah, dan respons provider yang telah dipersingkat serta disamarkan; rincian ini hanya ada di log server, bukan respons publik.
+Formulir beranda mengirim data ke `POST /api/aspirations`. Kiriman disimpan di koleksi `aspirations` dan tidak ditampilkan kepada publik. Formulir tidak mengirim notifikasi email; alamat email yang diisi hanya menjadi bagian dari data aspirasi. Endpoint memvalidasi isi dan membatasi kiriman hingga 10 per alamat IP per jam. Batasi akses koleksi ini kepada staf yang berwenang melalui Atlas.
 
 ## Deploy ke Railway
 
 1. Unggah proyek ke repositori GitHub dan hubungkan repositori melalui **Railway → New Project → Deploy from GitHub repo**. Railway memakai `railway.json` untuk menjalankan `npm start` dan memeriksa `/api/health`.
-2. Pada service Railway, buka **Variables** dan tambahkan `MONGODB_URI` berisi connection string dari Atlas serta `MONGODB_DB` dengan nilai `dpm_km_unnes`. Untuk email, tambahkan `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, dan `SMTP_FROM`. `SMTP_FROM` bersifat opsional dan jika kosong memakai `SMTP_USER`. Kredensial dashboard dikelola di koleksi `users`, bukan di environment variables.
+2. Pada service Railway, buka **Variables** dan tambahkan `MONGODB_URI` berisi connection string dari Atlas serta `MONGODB_DB` dengan nilai `dpm_km_unnes`. Kredensial dashboard dikelola di koleksi `users`, bukan di environment variables.
 3. Di Atlas, atur **Security → Network Access** agar mengizinkan koneksi keluar Railway. Gunakan static outbound IP jika tersedia untuk project/plan Anda dan izinkan hanya IP tersebut. Hindari `0.0.0.0/0`; jika Railway tidak menyediakan egress IP yang stabil, periksa opsi egress/IP statis yang tersedia sebelum memperluas akses Atlas.
 4. Buat akun admin dengan menjalankan `npm run create-admin` secara lokal menggunakan `MONGODB_URI` yang sama, setelah akses Atlas untuk mesin tersebut diizinkan. Deploy service, buka domain yang dibuat Railway, lalu periksa `/api/health`. Respons sukses menunjukkan `"database":"connected"`.
 

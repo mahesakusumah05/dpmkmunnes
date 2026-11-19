@@ -6,7 +6,6 @@ const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongoose = require("mongoose");
 const { verifyPassword } = require("./admin-auth");
-const { createAspirationTransporter, sendAspirationEmails } = require("./aspiration-email");
 
 const app = express();
 const projectRoot = __dirname;
@@ -58,6 +57,7 @@ const newsSchema = new mongoose.Schema(
     label: { type: String, required: true, trim: true, maxlength: 100 },
     title: { type: String, required: true, trim: true, maxlength: 200 },
     description: { type: String, required: true, trim: true, maxlength: 1000 },
+    content: { type: String, trim: true, maxlength: 10000, default: "" },
     date: {
       type: String,
       required: true,
@@ -209,6 +209,7 @@ function validateNewsInput(body) {
   const label = readText(body?.label, 100);
   const title = readText(body?.title, 200);
   const description = readText(body?.description, 1000);
+  const content = body?.content === undefined ? "" : body.content;
   const date = readText(body?.date, 10);
   const image = body?.image === undefined ? "" : body.image;
   const alt = body?.alt === undefined ? "" : body.alt;
@@ -217,6 +218,8 @@ function validateNewsInput(body) {
     !label ||
     !title ||
     !description ||
+    typeof content !== "string" ||
+    content.length > 10000 ||
     !date ||
     !isValidNewsDate(date) ||
     typeof image !== "string" ||
@@ -227,7 +230,15 @@ function validateNewsInput(body) {
   ) {
     return null;
   }
-  return { label, title, description, date, image: image.trim(), alt: alt.trim() };
+  return {
+    label,
+    title,
+    description,
+    content: content.trim(),
+    date,
+    image: image.trim(),
+    alt: alt.trim(),
+  };
 }
 
 function databaseUnavailable(res) {
@@ -302,6 +313,7 @@ app.get("/api/news", async (req, res) => {
       label: item.label,
       title: item.title,
       description: item.description,
+      content: item.content || "",
       date: item.date,
       image: item.image || "",
       alt: item.alt || "",
@@ -398,6 +410,7 @@ app.get("/api/admin/news", requireAdmin, async (req, res) => {
       label: item.label,
       title: item.title,
       description: item.description,
+      content: item.content || "",
       date: item.date,
       image: item.image || "",
       alt: item.alt || "",
@@ -539,39 +552,6 @@ app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
     return res.status(503).json({ error: "Layanan basis data sedang tidak tersedia." });
   }
 
-  let mailSettings;
-  try {
-    mailSettings = createAspirationTransporter();
-  } catch (error) {
-    console.error("Konfigurasi email aspirasi tidak valid:", error.message);
-    return res.status(503).json({
-      error: "Email belum siap. Aspirasi belum disimpan; silakan hubungi pengelola.",
-    });
-  }
-  if (!mailSettings) {
-    return res.status(503).json({
-      error: "Email belum dikonfigurasi. Aspirasi belum disimpan; silakan hubungi pengelola.",
-    });
-  }
-
-  const adminUsers = await mongoose.connection
-    .collection("users")
-    .find({ role: "admin", isActive: { $ne: false }, email: { $type: "string" } })
-    .project({ email: 1, _id: 0 })
-    .toArray();
-  const adminEmails = [
-    ...new Set(
-      adminUsers
-        .map((user) => (typeof user.email === "string" ? user.email.trim().toLowerCase() : ""))
-        .filter((adminEmail) => adminEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)),
-    ),
-  ];
-  if (!adminEmails.length) {
-    return res.status(503).json({
-      error: "Email admin belum diatur pada koleksi users. Aspirasi belum disimpan; silakan hubungi pengelola.",
-    });
-  }
-
   const submission = await Aspiration.create({
     fullName,
     campus,
@@ -580,34 +560,10 @@ app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
     message,
     consentAt: new Date(),
   });
-  const { failures, ...notifications } = await sendAspirationEmails({
-    transporter: mailSettings.transporter,
-    from: mailSettings.from,
-    aspiration: { fullName, campus, email, topic, message },
-    adminEmails,
-  });
-  const allNotificationsSent =
-    notifications.senderSent && notifications.adminsSent === notifications.adminsTotal;
-  if (!allNotificationsSent) {
-    console.error("Email aspirasi tidak terkirim seluruhnya:", {
-      senderSent: notifications.senderSent,
-      adminsSent: notifications.adminsSent,
-      adminsTotal: notifications.adminsTotal,
-      failures,
-    });
-    return res.status(202).json({
-      message: "Aspirasi tersimpan, tetapi sebagian email belum terkirim. Jangan kirim ulang; hubungi pengelola.",
-      id: submission._id.toString(),
-      saved: true,
-      notifications,
-    });
-  }
-
   return res.status(201).json({
-    message: "Terima kasih, aspirasi berhasil dikirim. Email konfirmasi dan pemberitahuan admin telah dikirim.",
+    message: "Terima kasih, aspirasi berhasil dikirim dan tersimpan.",
     id: submission._id.toString(),
     saved: true,
-    notifications,
   });
 });
 

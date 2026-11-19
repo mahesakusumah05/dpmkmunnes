@@ -311,6 +311,8 @@ function renderNewsTicker() {
     const link = document.createElement("a");
     link.className = "news-ticker-item";
     link.href = `news.html#${encodeURIComponent(item.id)}`;
+    link.dataset.newsId = item.id;
+    link.setAttribute("aria-haspopup", "dialog");
     link.textContent = item.title;
     primaryGroup.append(link);
 
@@ -323,6 +325,85 @@ function renderNewsTicker() {
   const duration = Math.max(24, Math.round(primaryGroup.scrollWidth / 45));
   newsTicker.style.setProperty("--ticker-duration", `${duration}s`);
 }
+
+const newsDetailDialog = document.createElement("dialog");
+newsDetailDialog.className = "news-detail-dialog";
+newsDetailDialog.setAttribute("aria-labelledby", "news-detail-title");
+newsDetailDialog.innerHTML = `
+  <div class="news-detail-shell">
+    <button class="news-detail-close" type="button" aria-label="Tutup berita">×</button>
+    <div class="news-detail-cover" hidden><img alt="" /></div>
+    <article class="news-detail-content">
+      <p class="news-detail-meta"><span></span><time></time></p>
+      <h2 id="news-detail-title"></h2>
+      <div class="news-detail-body"></div>
+    </article>
+  </div>`;
+document.body.append(newsDetailDialog);
+
+newsDetailDialog.querySelector(".news-detail-close").addEventListener("click", () => {
+  newsDetailDialog.close();
+});
+newsDetailDialog.addEventListener("click", (event) => {
+  if (event.target === newsDetailDialog) newsDetailDialog.close();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && newsDetailDialog.open) {
+    event.preventDefault();
+    newsDetailDialog.close();
+  }
+});
+
+function openNewsDetail(item) {
+  if (typeof newsDetailDialog.showModal !== "function") {
+    window.location.href = `news.html#${encodeURIComponent(item.id)}`;
+    return;
+  }
+
+  const cover = newsDetailDialog.querySelector(".news-detail-cover");
+  const image = cover.querySelector("img");
+  const imageUrl = safeImageUrl(item.image);
+  cover.hidden = !imageUrl;
+  if (imageUrl) {
+    image.src = imageUrl;
+    image.alt = item.alt || item.title;
+  } else {
+    image.removeAttribute("src");
+    image.alt = "";
+  }
+
+  newsDetailDialog.querySelector(".news-detail-meta span").textContent = item.label;
+  const date = newsDetailDialog.querySelector(".news-detail-meta time");
+  date.textContent = isValidArchiveDate(item.date)
+    ? archiveDateFormatter.format(new Date(`${item.date}T12:00:00`))
+    : item.date || "";
+  if (isValidArchiveDate(item.date)) date.dateTime = item.date;
+  else date.removeAttribute("datetime");
+
+  newsDetailDialog.querySelector("#news-detail-title").textContent = item.title;
+  const articleText = typeof item.content === "string" && item.content.trim()
+    ? item.content
+    : item.description;
+  const paragraphs = String(articleText || "")
+    .trim()
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.split(/\r?\n/).map(escapeHtml).join("<br>"))
+    .filter(Boolean);
+  newsDetailDialog.querySelector(".news-detail-body").innerHTML =
+    paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("");
+  newsDetailDialog.showModal();
+}
+
+document.addEventListener("click", (event) => {
+  const trigger = event.target instanceof Element ? event.target.closest("[data-news-id]") : null;
+  if (!trigger) return;
+  const item = archiveItemsByDate.find(
+    (candidate) => candidate.category === "news" && String(candidate.id) === trigger.dataset.newsId,
+  );
+  if (!item) return;
+  event.preventDefault();
+  openNewsDetail(item);
+});
 
 function updateArchiveItems() {
   const sortDate = (item) => item.date || `${item.year || "0000"}-01-01`;
@@ -932,6 +1013,21 @@ function renderArchiveCard(item) {
   const imageUrl = safeImageUrl(item.image);
   const dateText = escapeHtml(date);
 
+  if (item.category === "news") {
+    const image = imageUrl
+      ? `<button class="archive-image-link news-detail-trigger" type="button" data-news-id="${id}" aria-label="Baca berita: ${escapeHtml(item.alt || item.title)}"><img src="${imageUrl}" alt="${escapeHtml(item.alt || item.title)}" loading="lazy" /></button>`
+      : "";
+    return `<article class="archive-card archive-record archive-news-card" id="${id}" data-archive-id="${id}">
+      ${image}
+      <div class="archive-card-body">
+        <p class="archive-card-meta"><span>${label}</span><time${isValidArchiveDate(item.date) ? ` datetime="${escapeHtml(item.date)}"` : ""}>${dateText}</time></p>
+        <h3><button class="news-detail-title news-detail-trigger" type="button" data-news-id="${id}">${title}</button></h3>
+        <p class="archive-card-description">${description}</p>
+        <div class="archive-card-footer">${sampleBadge}<button class="news-detail-link news-detail-trigger" type="button" data-news-id="${id}">Baca berita <span aria-hidden="true">→</span></button></div>
+      </div>
+    </article>`;
+  }
+
   if (imageUrl) {
     return `<article class="archive-card archive-record archive-image-card" id="${id}" data-archive-id="${id}">
       ${renderArchiveImage(item, imageUrl)}
@@ -994,15 +1090,15 @@ function renderArchiveContent() {
         const label = escapeHtml(item.label);
         const imageUrl = safeImageUrl(item.image);
         const image = imageUrl
-          ? `<a class="news-image archive-home-image" href="news.html#${encodeURIComponent(item.id)}" aria-label="Lihat arsip gambar: ${escapeHtml(item.alt || item.title)}"><img src="${imageUrl}" alt="${escapeHtml(item.alt || item.title)}" loading="lazy" /></a>`
+          ? `<button class="news-image archive-home-image news-detail-trigger" type="button" data-news-id="${id}" aria-label="Baca berita: ${escapeHtml(item.alt || item.title)}"><img src="${imageUrl}" alt="${escapeHtml(item.alt || item.title)}" loading="lazy" /></button>`
           : "";
         return `<article class="news-card${index === 0 ? " news-featured" : ""}" id="home-${id}">
           ${image}
           <div class="news-copy">
             <p class="news-meta"><span>${label}</span><time datetime="${escapeHtml(item.date)}">${escapeHtml(date)}</time></p>
-            <h3><a href="news.html#${encodeURIComponent(item.id)}">${title}</a></h3>
+            <h3><button class="news-detail-title news-detail-trigger" type="button" data-news-id="${id}">${title}</button></h3>
             <p>${description}</p>
-            <a class="read-link" href="news.html#${encodeURIComponent(item.id)}">Lihat arsip <span>→</span></a>
+            <button class="read-link news-detail-trigger" type="button" data-news-id="${id}">Baca berita <span>→</span></button>
           </div>
         </article>`;
       })
@@ -1075,7 +1171,7 @@ if (aspirationForm) {
 
     const formData = new FormData(aspirationForm);
     if (formData.get("consent") !== "true") {
-      formStatus.textContent = "Persetujuan penyimpanan dan pengiriman email diperlukan untuk mengirim aspirasi.";
+      formStatus.textContent = "Persetujuan penyimpanan diperlukan untuk mengirim aspirasi.";
       return;
     }
 
@@ -1100,7 +1196,7 @@ if (aspirationForm) {
       if (!response.ok) throw new Error(result.error || "Aspirasi gagal dikirim.");
 
       aspirationForm.reset();
-      formStatus.textContent = result.message || "Aspirasi berhasil dikirim.";
+      formStatus.textContent = result.message || "Aspirasi berhasil dikirim dan tersimpan.";
     } catch (error) {
       console.error("Aspirasi gagal dikirim:", error);
       formStatus.textContent =

@@ -151,6 +151,7 @@ function editNews(item) {
   document.querySelector("#news-label").value = item.label;
   document.querySelector("#news-title").value = item.title;
   document.querySelector("#news-description").value = item.description;
+  document.querySelector("#news-content").value = item.content || "";
   document.querySelector("#news-date").value = item.date;
   document.querySelector("#news-image").value = item.image || "";
   document.querySelector("#news-image-alt").value = item.alt || "";
