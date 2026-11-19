@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 520" fill="none">
+  <defs>
+    <linearGradient id="gold" x1="72" y1="70" x2="292" y2="454" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6D99A"/>
+      <stop offset=".48" stop-color="#C99A4D"/>
+      <stop offset="1" stop-color="#80572C"/>
+    </linearGradient>
+    <linearGradient id="deep" x1="94" y1="110" x2="275" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#263A73"/>
+      <stop offset="1" stop-color="#09143C"/>
+    </linearGradient>
+    <filter id="shadow" x="22" y="0" width="336" height="520" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="12" dy="18"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="body">
+      <path d="M180 30c-19 39-48 61-78 93-39 42-60 97-57 157 4 77 48 137 135 218 87-81 131-141 135-218 3-60-18-115-57-157-30-32-59-54-78-93Z"/>
+    </clipPath>
+    <g id="kawung" stroke="#F6D99A" stroke-width="2">
+      <ellipse cy="-15" rx="8" ry="17"/>
+      <ellipse cy="-15" rx="8" ry="17" transform="rotate(90)"/>
+      <ellipse cy="-15" rx="8" ry="17" transform="rotate(180)"/>
+      <ellipse cy="-15" rx="8" ry="17" transform="rotate(270)"/>
+      <circle r="4" fill="#F6D99A" stroke="none"/>
+    </g>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M180 30c-19 39-48 61-78 93-39 42-60 97-57 157 4 77 48 137 135 218 87-81 131-141 135-218 3-60-18-115-57-157-30-32-59-54-78-93Z" fill="url(#gold)"/>
+    <path d="M180 64c-20 33-43 50-67 77-31 34-47 79-45 128 3 62 39 113 112 181 73-68 109-119 112-181 2-49-14-94-45-128-24-27-47-44-67-77Z" fill="url(#deep)" stroke="#F6D99A" stroke-opacity=".72" stroke-width="2"/>
+    <g clip-path="url(#body)" opacity=".92">
+      <path d="M180 94v331M107 154c27 29 49 42 73 44 24-2 46-15 73-44M83 250c38 30 67 43 97 44 30-1 59-14 97-44M101 345c31 24 54 34 79 35 25-1 48-11 79-35" stroke="#E7C47E" stroke-width="2"/>
+      <use href="#kawung" x="180" y="188"/>
+      <use href="#kawung" x="133" y="270"/>
+      <use href="#kawung" x="227" y="270"/>
+      <use href="#kawung" x="180" y="366"/>
+      <path d="M180 104c-13 22-27 33-44 47m44-47c13 22 27 33 44 47M180 424c-12-11-23-20-36-30m36 30c12-11 23-20 36-30" stroke="#F6D99A" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <path d="M180 30c-9 19-17 31-29 44 12 1 21-4 29-13 8 9 17 14 29 13-12-13-20-25-29-44Z" fill="#F6D99A"/>
+    <circle cx="180" cy="58" r="5" fill="#263A73"/>
+  </g>
+</svg>

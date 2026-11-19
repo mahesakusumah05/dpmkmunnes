@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420" fill="none">
+  <defs>
+    <g id="scroll" fill="none" stroke="#B7862D" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+      <path d="M2 42c16-2 27-13 24-25-2-9-13-11-18-4-4 6 0 12 6 10 4-2 4-6 1-7m11 5c7-13 21-17 30-10 7 6 5 16-2 18-6 2-10-4-6-8"/>
+      <path d="M5 38c-5-11-3-22 5-29 6-5 14-2 14 4 0 5-5 7-8 4m28 22c11-4 17-11 17-20 0-7-7-11-12-7-4 4-1 10 4 9"/>
+      <path d="M8 49c5-5 9-5 13-1m24-33c-4 5-4 9 0 13" stroke="#0B1849" stroke-width="1.5"/>
+      <circle cx="27" cy="31" r="2" fill="#B7862D" stroke="none"/>
+    </g>
+  </defs>
+  <g stroke="#0B1849" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M210-48 268 10l-58 58-58-58 58-58ZM210 352l58 58-58 58-58-58 58-58ZM-48 210l58-58 58 58-58 58-58-58ZM352 210l58-58 58 58-58 58-58-58Z" stroke-width="2"/>
+    <path d="m210 87 123 123-123 123L87 210 210 87Z" stroke-width="2.4"/>
+    <path d="m210 119 91 91-91 91-91-91 91-91Z" stroke-width="1.5"/>
+    <path d="m210 151 59 59-59 59-59-59 59-59Z" stroke-width="2"/>
+    <path d="m210 176 34 34-34 34-34-34 34-34Z" stroke="#B7862D" stroke-width="2"/>
+    <path d="M210 142c-12 15-24 30-24 49 0 16 9 29 24 37 15-8 24-21 24-37 0-19-12-34-24-49Z" stroke="#0B1849" stroke-width="2.5"/>
+    <path d="M210 157v52m-15-24h30m-25 16 10 10 10-10" stroke="#B7862D" stroke-width="2"/>
+    <path d="M158 210c-11-8-10-19 0-24 8-4 16 2 14 9-1 5-7 7-11 4m101 11c11-8 10-19 0-24-8-4-16 2-14 9 1 5 7 7 11 4M210 158c-8-11-19-10-24 0-4 8 2 16 9 14m15 101c-8 11-19 10-24 0-4-8 2-16 9-14" stroke-width="2"/>
+    <path d="M38 104v-31m0 14-8-8m8 18 8-8M382 104v-31m0 14-8-8m8 18 8-8M38 316v31m0-14-8 8m8-18 8 8M382 316v31m0-14-8 8m8-18 8 8" stroke-width="1.6"/>
+    <path d="M73 105h38m198 0h38M73 315h38m198 0h38" stroke-width="1.4"/>
+  </g>
+  <g opacity=".9">
+    <use href="#scroll" x="30" y="30"/>
+    <use href="#scroll" transform="translate(390 30) scale(-1 1)"/>
+    <use href="#scroll" transform="translate(30 390) scale(1 -1)"/>
+    <use href="#scroll" transform="translate(390 390) scale(-1 -1)"/>
+  </g>
+  <g fill="#B7862D">
+    <circle cx="210" cy="210" r="4"/>
+    <circle cx="38" cy="59" r="3"/>
+    <circle cx="38" cy="70" r="2"/>
+    <circle cx="382" cy="59" r="3"/>
+    <circle cx="382" cy="70" r="2"/>
+    <circle cx="38" cy="361" r="3"/>
+    <circle cx="38" cy="350" r="2"/>
+    <circle cx="382" cy="361" r="3"/>
+    <circle cx="382" cy="350" r="2"/>
+    <path d="m54 210 6-6 6 6-6 6-6-6Zm300 0 6-6 6 6-6 6-6-6ZM210 54l6-6 6 6-6 6-6-6Zm0 300 6-6 6 6-6 6-6-6Z"/>
+  </g>
+</svg>
