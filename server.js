@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongoose = require("mongoose");
 const { verifyPassword } = require("./admin-auth");
+const { createAspirationTransporter, sendAspirationEmails } = require("./aspiration-email");
 
 const app = express();
 const projectRoot = __dirname;
@@ -518,7 +519,8 @@ const aspirationLimiter = rateLimit({
 app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
   const fullName = readText(req.body?.fullName, 120);
   const campus = readText(req.body?.campus, 160);
-  const email = readText(req.body?.email, 254);
+  const emailInput = readText(req.body?.email, 254);
+  const email = emailInput?.toLowerCase() || null;
   const topic = readText(req.body?.topic, 40);
   const message = readText(req.body?.message, 5000);
   const validEmail = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -537,6 +539,39 @@ app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
     return res.status(503).json({ error: "Layanan basis data sedang tidak tersedia." });
   }
 
+  let mailSettings;
+  try {
+    mailSettings = createAspirationTransporter();
+  } catch (error) {
+    console.error("Konfigurasi email aspirasi tidak valid:", error.message);
+    return res.status(503).json({
+      error: "Email belum siap. Aspirasi belum disimpan; silakan hubungi pengelola.",
+    });
+  }
+  if (!mailSettings) {
+    return res.status(503).json({
+      error: "Email belum dikonfigurasi. Aspirasi belum disimpan; silakan hubungi pengelola.",
+    });
+  }
+
+  const adminUsers = await mongoose.connection
+    .collection("users")
+    .find({ role: "admin", isActive: { $ne: false }, email: { $type: "string" } })
+    .project({ email: 1, _id: 0 })
+    .toArray();
+  const adminEmails = [
+    ...new Set(
+      adminUsers
+        .map((user) => (typeof user.email === "string" ? user.email.trim().toLowerCase() : ""))
+        .filter((adminEmail) => adminEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)),
+    ),
+  ];
+  if (!adminEmails.length) {
+    return res.status(503).json({
+      error: "Email admin belum diatur pada koleksi users. Aspirasi belum disimpan; silakan hubungi pengelola.",
+    });
+  }
+
   const submission = await Aspiration.create({
     fullName,
     campus,
@@ -545,7 +580,34 @@ app.post("/api/aspirations", aspirationLimiter, async (req, res) => {
     message,
     consentAt: new Date(),
   });
-  res.status(201).json({ message: "Aspirasi berhasil dikirim.", id: submission._id.toString() });
+  const notifications = await sendAspirationEmails({
+    transporter: mailSettings.transporter,
+    from: mailSettings.from,
+    aspiration: { fullName, campus, email, topic, message },
+    adminEmails,
+  });
+  const allNotificationsSent =
+    notifications.senderSent && notifications.adminsSent === notifications.adminsTotal;
+  if (!allNotificationsSent) {
+    console.error("Email aspirasi tidak terkirim seluruhnya:", {
+      senderSent: notifications.senderSent,
+      adminsSent: notifications.adminsSent,
+      adminsTotal: notifications.adminsTotal,
+    });
+    return res.status(202).json({
+      message: "Aspirasi tersimpan, tetapi sebagian email belum terkirim. Jangan kirim ulang; hubungi pengelola.",
+      id: submission._id.toString(),
+      saved: true,
+      notifications,
+    });
+  }
+
+  return res.status(201).json({
+    message: "Terima kasih, aspirasi berhasil dikirim. Email konfirmasi dan pemberitahuan admin telah dikirim.",
+    id: submission._id.toString(),
+    saved: true,
+    notifications,
+  });
 });
 
 app.use("/api", (req, res) => {

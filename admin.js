@@ -199,6 +199,35 @@ function safeEditorImageUrl(value) {
   return "";
 }
 
+function safeEditorResourceUrl(value) {
+  if (typeof value !== "string" || !value.trim()) return "";
+  try {
+    const url = new URL(value.trim(), window.location.origin);
+    if (url.protocol === "https:") return url.href;
+    if (url.origin === window.location.origin && !url.username && !url.password) return url.href;
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function isSupportedYouTubeUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    let id = "";
+    if (url.hostname === "youtu.be") {
+      id = url.pathname.slice(1).split("/")[0];
+    } else if (["youtube.com", "www.youtube.com", "m.youtube.com"].includes(url.hostname)) {
+      if (url.pathname === "/watch") id = url.searchParams.get("v") || "";
+      else id = url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})\/?$/)?.[1] || "";
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id);
+  } catch {
+    return false;
+  }
+}
+
 function createContentField(field, value = "") {
   const wrapper = document.createElement("div");
   wrapper.className = `content-field${field.wide ? " content-field-wide" : ""}`;
@@ -397,6 +426,26 @@ function renderHomepageEditor(content) {
   if (Array.isArray(homepage.quotes)) homepage.quotes = { items: homepage.quotes };
   else homepage.quotes = cloneContent(homepage.quotes);
 
+  const brandSection = createContentSection(
+    structuredEditor,
+    "Logo situs",
+    "Logo ini digunakan pada header dan footer seluruh halaman publik.",
+  );
+  brandSection.append(
+    createContentField(
+      {
+        path: "brandLogo",
+        label: "URL logo atau path lokal",
+        maxLength: 2048,
+        placeholder: "images/unnes-logo.png",
+        help: "Gunakan URL HTTPS atau path gambar yang tersedia di situs. Pratinjau ditampilkan di bawah.",
+        imagePreview: true,
+        wide: true,
+      },
+      homepage.brandLogo || "images/unnes-logo.png",
+    ),
+  );
+
   const heroSection = createContentSection(
     structuredEditor,
     "Tampilan hero beranda",
@@ -433,6 +482,42 @@ function renderHomepageEditor(content) {
         imagePreview: true,
       },
     ],
+  });
+
+  const youtubeSection = createContentSection(
+    structuredEditor,
+    "Video YouTube beranda",
+    "Masukkan tautan video YouTube untuk menampilkan pemutar video di beranda. Kosongkan tautan untuk menyembunyikan bagian video.",
+  );
+  [
+    {
+      path: "youtube.url",
+      label: "URL video YouTube",
+      type: "url",
+      maxLength: 2048,
+      placeholder: "https://www.youtube.com/watch?v=XXXXXXXXXXX",
+      help: "Gunakan tautan video YouTube, Shorts, atau youtu.be; tautan kanal tidak didukung.",
+      wide: true,
+    },
+    { path: "youtube.sectionLabel", label: "Label bagian", maxLength: 100 },
+    { path: "youtube.sectionTitle", label: "Judul bagian", maxLength: 200 },
+    { path: "youtube.eyebrow", label: "Label video", maxLength: 100 },
+    { path: "youtube.title", label: "Judul video", maxLength: 200 },
+    {
+      path: "youtube.description",
+      label: "Deskripsi video",
+      type: "textarea",
+      rows: 3,
+      maxLength: 700,
+      wide: true,
+    },
+  ].forEach((field) => {
+    youtubeSection.append(
+      createContentField(
+        field,
+        field.path.split(".").reduce((value, key) => value?.[key], homepage),
+      ),
+    );
   });
 
   const quoteSection = createContentSection(
@@ -556,8 +641,9 @@ function renderLegislationEditor(content) {
         type: "select",
         options: [
           { value: "", label: "Standar" },
-          { value: "review", label: "Dalam pembahasan" },
-          { value: "planning", label: "Perencanaan" },
+          { value: "review", label: "Dalam pembahasan (kuning)" },
+          { value: "planning", label: "Perencanaan (merah)" },
+          { value: "enacted", label: "Disahkan (hijau)" },
         ],
       },
     ],
@@ -580,8 +666,9 @@ function renderLegislationEditor(content) {
         type: "select",
         options: [
           { value: "", label: "Dalam proses" },
-          { value: "in-progress", label: "Dalam proses" },
-          { value: "enacted", label: "Disahkan" },
+          { value: "submitted", label: "Diajukan (merah)" },
+          { value: "in-progress", label: "Dalam proses (kuning)" },
+          { value: "enacted", label: "Disahkan (hijau)" },
         ],
       },
       { field: "status", label: "Status", maxLength: 120, required: true },
@@ -634,10 +721,212 @@ function renderOrganizationEditor(content) {
   });
 }
 
+function renderArchiveEditor(content) {
+  const archives = cloneContent(content);
+  makeRepeater(structuredEditor, {
+    key: "archives-items",
+    title: "Daftar arsip resmi",
+    description: "Kelola dokumen undang-undang dan kegiatan yang tampil pada halaman Pengarsipan. Berita dikelola terpisah melalui bagian Berita.",
+    itemLabel: "Arsip",
+    addLabel: "Tambah arsip",
+    items: Array.isArray(archives.items) ? archives.items : [],
+    defaultItem: { category: "laws" },
+    fields: [
+      {
+        field: "category",
+        label: "Kategori",
+        type: "select",
+        required: true,
+        options: [
+          { value: "laws", label: "Undang-undang" },
+          { value: "activities", label: "Kegiatan" },
+        ],
+      },
+      { field: "id", label: "ID arsip", maxLength: 120, placeholder: "Dibuat otomatis dari judul" },
+      { field: "label", label: "Label arsip", maxLength: 150, required: true, placeholder: "Undang-Undang Keluarga Mahasiswa" },
+      { field: "title", label: "Judul", maxLength: 300, required: true, wide: true },
+      { field: "description", label: "Keterangan", type: "textarea", rows: 3, maxLength: 1000, required: true, wide: true },
+      {
+        field: "date",
+        label: "Tanggal dokumen",
+        type: "date",
+        help: "Isi tanggal atau tahun dokumen.",
+      },
+      { field: "year", label: "Tahun dokumen", maxLength: 4, placeholder: "2026" },
+      {
+        field: "format",
+        label: "Format berkas",
+        maxLength: 20,
+        placeholder: "PDF atau TXT",
+        help: "Wajib diisi jika tautan berkas digunakan.",
+      },
+      {
+        field: "file",
+        label: "URL atau path berkas",
+        maxLength: 2048,
+        placeholder: "arsip/nama-dokumen.pdf",
+        help: "Gunakan URL HTTPS atau path berkas yang tersedia pada situs.",
+        wide: true,
+      },
+      {
+        field: "image",
+        label: "URL atau path gambar (opsional)",
+        maxLength: 2048,
+        placeholder: "images/dokumentasi.jpg",
+        help: "Jika diisi, gambar ditampilkan sebagai pratinjau arsip.",
+        imagePreview: true,
+        wide: true,
+      },
+      { field: "alt", label: "Teks alternatif gambar", maxLength: 300, wide: true },
+    ],
+  });
+}
+
+function renderActivityEditor(content) {
+  const activities = cloneContent(content);
+  const budget = cloneContent(activities.budget);
+  const budgetSection = createContentSection(
+    structuredEditor,
+    "Transparansi anggaran",
+    "Atur judul dokumen, pratinjau, tautan unduhan, dan keterangan yang tampil pada halaman Kegiatan.",
+  );
+  [
+    { path: "budget.title", label: "Judul dokumen", maxLength: 200 },
+    { path: "budget.subtitle", label: "Subjudul dokumen", maxLength: 200 },
+    { path: "budget.tableTitle", label: "Judul tabel ringkasan", maxLength: 200 },
+    { path: "budget.notice", label: "Keterangan transparansi", type: "textarea", rows: 2, maxLength: 500, wide: true },
+    {
+      path: "budget.previewUrl",
+      label: "URL pratinjau dokumen",
+      maxLength: 2048,
+      placeholder: "arsip/laporan-anggaran.pdf",
+      help: "Gunakan URL HTTPS atau path berkas yang tersedia pada situs.",
+      wide: true,
+    },
+    {
+      path: "budget.downloadUrl",
+      label: "URL unduhan dokumen",
+      maxLength: 2048,
+      placeholder: "arsip/laporan-anggaran.pdf",
+      help: "Gunakan URL HTTPS atau path berkas yang tersedia pada situs.",
+      wide: true,
+    },
+  ].forEach((field) => {
+    budgetSection.append(
+      createContentField(
+        field,
+        field.path.split(".").reduce((value, key) => value?.[key], activities),
+      ),
+    );
+  });
+  makeRepeater(structuredEditor, {
+    key: "activities-budgetRows",
+    title: "Ringkasan anggaran",
+    description: "Baris ini mengisi tabel komponen, periode, rencana/pagu, realisasi, dan keterangan.",
+    itemLabel: "Komponen",
+    addLabel: "Tambah komponen anggaran",
+    items: Array.isArray(budget.rows) ? budget.rows : [],
+    defaultItem: {},
+    fields: [
+      { field: "component", label: "Komponen", maxLength: 200, required: true },
+      { field: "period", label: "Periode", maxLength: 100 },
+      { field: "planned", label: "Rencana / pagu", maxLength: 120 },
+      { field: "actual", label: "Realisasi", maxLength: 120 },
+      { field: "note", label: "Keterangan", type: "textarea", rows: 2, maxLength: 500, wide: true },
+    ],
+  });
+
+  const oversightSection = createContentSection(
+    structuredEditor,
+    "Laporan hasil pengawasan",
+    "Kelola pengantar dan setiap laporan yang ditampilkan sebagai kartu pada halaman Kegiatan.",
+  );
+  oversightSection.append(
+    createContentField(
+      {
+        path: "oversightNotice",
+        label: "Keterangan pengawasan",
+        type: "textarea",
+        rows: 2,
+        maxLength: 500,
+        wide: true,
+      },
+      activities.oversightNotice,
+    ),
+  );
+  makeRepeater(structuredEditor, {
+    key: "activities-oversight",
+    title: "Daftar laporan pengawasan",
+    description: "Tambahkan judul, ringkasan, status, dan tautan laporan.",
+    itemLabel: "Laporan",
+    addLabel: "Tambah laporan pengawasan",
+    items: Array.isArray(activities.oversight) ? activities.oversight : [],
+    defaultItem: {},
+    fields: [
+      { field: "label", label: "Label laporan", maxLength: 150 },
+      { field: "title", label: "Judul laporan", maxLength: 250, required: true, wide: true },
+      { field: "description", label: "Ringkasan atau temuan", type: "textarea", rows: 3, maxLength: 1000, required: true, wide: true },
+      { field: "status", label: "Status tindak lanjut", maxLength: 150 },
+      {
+        field: "fileUrl",
+        label: "URL berkas laporan",
+        maxLength: 2048,
+        placeholder: "arsip/laporan-pengawasan.pdf",
+        help: "Opsional. Gunakan URL HTTPS atau path berkas yang tersedia pada situs.",
+        wide: true,
+      },
+    ],
+  });
+
+  const gallerySection = createContentSection(
+    structuredEditor,
+    "Dokumentasi kegiatan",
+    "Atur pengantar dan foto-foto yang tampil pada galeri halaman Kegiatan.",
+  );
+  gallerySection.append(
+    createContentField(
+      {
+        path: "galleryNotice",
+        label: "Keterangan galeri",
+        type: "textarea",
+        rows: 2,
+        maxLength: 500,
+        wide: true,
+      },
+      activities.galleryNotice,
+    ),
+  );
+  makeRepeater(structuredEditor, {
+    key: "activities-gallery",
+    title: "Galeri kegiatan",
+    description: "Setiap foto dapat memiliki judul, keterangan, dan teks alternatif.",
+    itemLabel: "Foto",
+    addLabel: "Tambah foto kegiatan",
+    limit: 100,
+    items: Array.isArray(activities.gallery) ? activities.gallery : [],
+    defaultItem: {},
+    fields: [
+      {
+        field: "image",
+        label: "URL foto atau path lokal",
+        maxLength: 2048,
+        required: true,
+        placeholder: "images/kegiatan.jpg",
+        help: "Gunakan URL HTTPS atau path gambar yang tersedia pada situs.",
+        imagePreview: true,
+        wide: true,
+      },
+      { field: "title", label: "Judul foto", maxLength: 200, required: true },
+      { field: "caption", label: "Keterangan foto", type: "textarea", rows: 2, maxLength: 500, wide: true },
+      { field: "alt", label: "Teks alternatif", maxLength: 300, wide: true },
+    ],
+  });
+}
+
 function renderContentEditor() {
   const section = contentSection.value;
   const content = siteContent[section] || {};
-  const structuredSections = ["homepage", "legislation", "organization"];
+  const structuredSections = ["homepage", "legislation", "archives", "activities", "organization"];
   const isStructured = structuredSections.includes(section);
   structuredEditor.replaceChildren();
   activeRepeaters = new Map();
@@ -651,6 +940,8 @@ function renderContentEditor() {
 
   if (section === "homepage") renderHomepageEditor(content);
   if (section === "legislation") renderLegislationEditor(content);
+  if (section === "archives") renderArchiveEditor(content);
+  if (section === "activities") renderActivityEditor(content);
   if (section === "organization") renderOrganizationEditor(content);
   setStatus(contentStatus, "");
 }
@@ -661,6 +952,12 @@ function collectStructuredContent(section) {
     if (Array.isArray(original.quotes)) original.quotes = { items: original.quotes };
     else original.quotes = cloneContent(original.quotes);
     const content = applyPathFields(original);
+    if (content.brandLogo && !safeEditorImageUrl(content.brandLogo)) {
+      throw new Error("Logo situs harus berupa URL HTTPS atau path gambar lokal.");
+    }
+    if (content.youtube?.url && !isSupportedYouTubeUrl(content.youtube.url)) {
+      throw new Error("Masukkan tautan video YouTube yang valid (video, Shorts, atau youtu.be).");
+    }
     const heroSlides = readRepeater("homepage-heroSlides", [
       { name: "title", label: "Judul hero" },
       { name: "description", label: "Deskripsi hero" },
@@ -708,6 +1005,42 @@ function collectStructuredContent(section) {
     return content;
   }
 
+  if (section === "archives") {
+    const content = cloneContent(siteContent.archives);
+    content.items = ensureUniqueIds(
+      readRepeater("archives-items", [
+        { name: "category", label: "Kategori arsip" },
+        { name: "label", label: "Label arsip" },
+        { name: "title", label: "Judul arsip" },
+        { name: "description", label: "Keterangan arsip" },
+      ]),
+      "arsip",
+    );
+    content.items.forEach((item, index) => {
+      if (!["laws", "activities"].includes(item.category)) {
+        throw new Error(`Pilih kategori yang valid pada arsip ${index + 1}.`);
+      }
+      const parsedDate = new Date(`${item.date}T00:00:00Z`);
+      const hasDate = /^\d{4}-\d{2}-\d{2}$/.test(item.date || "") &&
+        !Number.isNaN(parsedDate.getTime()) &&
+        parsedDate.toISOString().slice(0, 10) === item.date;
+      const hasYear = /^\d{4}$/.test(item.year || "");
+      if (!hasDate && !hasYear) {
+        throw new Error(`Isi tanggal atau tahun dokumen pada arsip ${index + 1}.`);
+      }
+      if (item.file && !safeEditorResourceUrl(item.file)) {
+        throw new Error(`Tautan berkas arsip ${index + 1} harus berupa URL HTTPS atau path lokal.`);
+      }
+      if (item.file && !item.format) {
+        throw new Error(`Isi format berkas pada arsip ${index + 1}.`);
+      }
+      if (item.image && !safeEditorImageUrl(item.image)) {
+        throw new Error(`Gambar arsip ${index + 1} harus berupa URL HTTPS atau path gambar lokal.`);
+      }
+    });
+    return content;
+  }
+
   if (section === "organization") {
     const content = applyPathFields(siteContent.organization);
     content.profiles = readRepeater("organization-profiles", [
@@ -718,6 +1051,38 @@ function collectStructuredContent(section) {
     content.profiles.forEach((profile, index) => {
       if (!safeEditorImageUrl(profile.photo)) {
         throw new Error(`Foto profil ${index + 1} harus berupa URL HTTPS atau path gambar lokal.`);
+      }
+    });
+    return content;
+  }
+
+  if (section === "activities") {
+    const content = applyPathFields(siteContent.activities);
+    content.budget.rows = readRepeater("activities-budgetRows", [
+      { name: "component", label: "Komponen anggaran" },
+    ]);
+    content.oversight = readRepeater("activities-oversight", [
+      { name: "title", label: "Judul laporan pengawasan" },
+      { name: "description", label: "Ringkasan atau temuan" },
+    ]);
+    content.oversight.forEach((item, index) => {
+      if (item.fileUrl && !safeEditorResourceUrl(item.fileUrl)) {
+        throw new Error(`URL berkas laporan pengawasan ${index + 1} harus berupa URL HTTPS atau path lokal.`);
+      }
+    });
+    content.gallery = readRepeater("activities-gallery", [
+      { name: "image", label: "Foto kegiatan" },
+      { name: "title", label: "Judul foto" },
+    ]);
+    content.gallery.forEach((item, index) => {
+      if (!safeEditorImageUrl(item.image)) {
+        throw new Error(`Foto kegiatan ${index + 1} harus berupa URL HTTPS atau path gambar lokal.`);
+      }
+    });
+    ["previewUrl", "downloadUrl"].forEach((field) => {
+      const value = content.budget[field];
+      if (value && !safeEditorResourceUrl(value)) {
+        throw new Error(`URL ${field === "previewUrl" ? "pratinjau" : "unduhan"} anggaran harus berupa URL HTTPS atau path lokal.`);
       }
     });
     return content;
@@ -829,7 +1194,7 @@ document.querySelector("#save-content").addEventListener("click", async (event) 
   const button = event.currentTarget;
   let content;
   try {
-    if (["homepage", "legislation", "organization"].includes(contentSection.value)) {
+    if (["homepage", "legislation", "archives", "activities", "organization"].includes(contentSection.value)) {
       content = collectStructuredContent(contentSection.value);
     } else {
       content = JSON.parse(contentJson.value);

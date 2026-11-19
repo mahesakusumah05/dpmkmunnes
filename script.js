@@ -182,6 +182,12 @@ function applySiteContent(content) {
 
   const homepage = content.homepage;
   const siteHomepage = homepage && typeof homepage === "object" ? homepage : {};
+  const brandLogo = safeImageUrl(siteHomepage.brandLogo);
+  if (brandLogo) {
+    document.querySelectorAll(".brand-emblem").forEach((image) => {
+      image.setAttribute("src", brandLogo);
+    });
+  }
 
   const heroSlides = Array.isArray(siteHomepage.heroSlides)
     ? siteHomepage.heroSlides
@@ -575,7 +581,7 @@ function renderLegislationContent(content) {
       const href = documentId
         ? `legislation.html?document=${encodeURIComponent(documentId)}#baca-undang-undang`
         : safeContentHref(bill.url) || `#${encodeURIComponent(id)}`;
-      const statusType = ["review", "planning"].includes(bill.statusType)
+      const statusType = ["review", "planning", "enacted"].includes(bill.statusType)
         ? ` status-${bill.statusType}`
         : "";
       return `<a class="bill-row" id="${escapeHtml(id)}" href="${escapeHtml(href)}"${documentId ? ` data-legislation-document="${escapeHtml(documentId)}"` : ""}>
@@ -765,7 +771,11 @@ function renderLegislationContent(content) {
       ? historyRows
           .map((row) => {
             const statusClass =
-              row.statusType === "enacted" ? "status-enacted" : "status-in-progress";
+              row.statusType === "submitted"
+                ? "status-submitted"
+                : row.statusType === "enacted"
+                  ? "status-enacted"
+                  : "status-in-progress";
             return `<tr><td>${escapeHtml(row.document || "")}</td><td>${escapeHtml(row.topic || "")}</td><td><span class="status-badge ${statusClass}">${escapeHtml(row.status || "")}</span></td><td>${escapeHtml(row.description || "")}</td><td>${escapeHtml(row.updatedAt || "—")}</td></tr>`;
           })
           .join("")
@@ -1065,7 +1075,7 @@ if (aspirationForm) {
 
     const formData = new FormData(aspirationForm);
     if (formData.get("consent") !== "true") {
-      formStatus.textContent = "Persetujuan penyimpanan data diperlukan untuk mengirim aspirasi.";
+      formStatus.textContent = "Persetujuan penyimpanan dan pengiriman email diperlukan untuk mengirim aspirasi.";
       return;
     }
 
@@ -1247,6 +1257,7 @@ if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
 
   function scheduleQuoteAdvance() {
     stopQuoteTimer();
+    if (!quotes.length) return;
     const isPaused =
       reducedMotionPreference.matches || quoteHovered || quoteFocused || document.hidden;
     quoteCard.classList.toggle("is-paused", isPaused);
@@ -1258,6 +1269,7 @@ if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
   }
 
   function showQuote(index) {
+    if (!quotes.length) return;
     activeQuote = (index + quotes.length) % quotes.length;
     const quote = quotes[activeQuote];
     quoteCard.classList.remove("quote-changing");
@@ -1479,31 +1491,27 @@ if ("IntersectionObserver" in window && !reducedMotionPreference.matches) {
   );
   revealTargets.forEach((item, index) => {
     item.classList.add("motion-reveal");
-    item.style.setProperty("--reveal-delay", `${Math.min(index % 5, 4) * 85}ms`);
+    item.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 45}ms`);
     revealObserver.observe(item);
   });
   rootElement.classList.add("motion-enabled");
 }
 
-const supportsHoverTilt = window.matchMedia("(hover: hover) and (pointer: fine)");
-if (!reducedMotionPreference.matches && supportsHoverTilt.matches) {
-  const tiltTargets = document.querySelectorAll(
+const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+if (!reducedMotionPreference.matches && supportsFinePointer.matches) {
+  const hoverTargets = document.querySelectorAll(
     ".archive-card, .person-card, .activity-card, .oversight-card, .activity-gallery figure, .service-card, .quote-card, .video-feature, .law-document, .budget-document-frame, .process-grid article, .pillar-card",
   );
-  tiltTargets.forEach((item) => {
-    item.classList.add("motion-tilt");
+  hoverTargets.forEach((item) => {
+    item.classList.add("motion-hover");
     item.addEventListener("pointermove", (event) => {
       const bounds = item.getBoundingClientRect();
-      const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-      const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-      item.style.setProperty("--tilt-x", `${(y * -3.2).toFixed(2)}deg`);
-      item.style.setProperty("--tilt-y", `${(x * 3.2).toFixed(2)}deg`);
-      item.style.setProperty("--pointer-x", `${(x + 0.5) * 100}%`);
-      item.style.setProperty("--pointer-y", `${(y + 0.5) * 100}%`);
+      const x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+      const y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
+      item.style.setProperty("--pointer-x", `${(x * 100).toFixed(1)}%`);
+      item.style.setProperty("--pointer-y", `${(y * 100).toFixed(1)}%`);
     });
     item.addEventListener("pointerleave", () => {
-      item.style.setProperty("--tilt-x", "0deg");
-      item.style.setProperty("--tilt-y", "0deg");
       item.style.setProperty("--pointer-x", "50%");
       item.style.setProperty("--pointer-y", "50%");
     });
@@ -1515,8 +1523,8 @@ if (!reducedMotionPreference.matches && supportsHoverTilt.matches) {
       const bounds = hero.getBoundingClientRect();
       const x = (event.clientX - bounds.left) / bounds.width - 0.5;
       const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-      hero.style.setProperty("--hero-pointer-x", `${(x * -10).toFixed(2)}px`);
-      hero.style.setProperty("--hero-pointer-y", `${(y * -8).toFixed(2)}px`);
+      hero.style.setProperty("--hero-pointer-x", `${(x * -4).toFixed(2)}px`);
+      hero.style.setProperty("--hero-pointer-y", `${(y * -3).toFixed(2)}px`);
     });
     hero.addEventListener("pointerleave", () => {
       hero.style.setProperty("--hero-pointer-x", "0px");
