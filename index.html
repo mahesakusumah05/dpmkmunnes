@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="styles.css" />
     <script src="script.js" defer></script>
   </head>
-  <body>
+  <body class="home-page">
     <a class="skip-link" href="#main-content">Lewati ke konten</a>
 
     <div class="topline">
@@ -77,11 +77,11 @@
         </div>
       </form>
       <nav class="mobile-menu" id="mobile-menu" aria-label="Navigasi seluler" hidden>
-        <a href="index.html" aria-current="page">Beranda <span>↗</span></a>
-        <a href="legislation.html">Undang-Undang <span>↗</span></a>
-        <a href="about.html">Struktur <span>↗</span></a>
-        <a href="news.html">Pengarsipan <span>↗</span></a>
-        <a href="services.html">Kegiatan <span>↗</span></a>
+        <a href="index.html" aria-current="page">Beranda</a>
+        <a href="legislation.html">Undang-Undang</a>
+        <a href="about.html">Struktur</a>
+        <a href="news.html">Pengarsipan</a>
+        <a href="services.html">Kegiatan</a>
       </nav>
     </header>
 
@@ -96,7 +96,7 @@
           <p class="hero-description" id="hero-description">
             DPM KM UNNES hadir untuk menyerap aspirasi, mengawal kebijakan, dan memperjuangkan kepentingan mahasiswa Universitas Negeri Semarang.
           </p>
-          <a class="button button-light" data-content-href="homepage.hero.link" href="about.html"><span data-content-key="homepage.hero.linkLabel">Lihat Struktur</span> <span aria-hidden="true">→</span></a>
+          <a class="button button-light" data-content-href="homepage.hero.link" href="about.html"><span data-content-key="homepage.hero.linkLabel">Lihat Struktur</span></a>
           <div class="hero-controls" aria-label="Indikator berita pilihan">
             <span class="hero-count"><b id="slide-current">01</b> <i></i> <span id="slide-total">03</span></span>
             <div class="hero-dots">
@@ -107,9 +107,31 @@
           </div>
         </div>
         <a class="hero-caption" href="news.html">
-          <span class="caption-icon" aria-hidden="true">↗</span>
           <span><small data-content-key="homepage.hero.captionLabel">Informasi terbaru</small><strong data-content-key="homepage.hero.captionTitle">Lihat arsip dan informasi DPM KM UNNES</strong></span>
         </a>
+      </section>
+
+      <section class="quick-links" aria-label="Akses cepat">
+        <div class="container">
+          <nav class="quick-links-grid" aria-label="Layanan utama">
+            <a class="quick-link" href="#aspirasi">
+              <span class="quick-link-number">01</span>
+              <span><small>Partisipasi mahasiswa</small><strong>Kirim aspirasi</strong></span>
+            </a>
+            <a class="quick-link" href="legislation.html">
+              <span class="quick-link-number">02</span>
+              <span><small>Produk kelembagaan</small><strong>Undang-Undang</strong></span>
+            </a>
+            <a class="quick-link" href="news.html">
+              <span class="quick-link-number">03</span>
+              <span><small>Dokumen &amp; informasi</small><strong>Pengarsipan</strong></span>
+            </a>
+            <a class="quick-link" href="about.html">
+              <span class="quick-link-number">04</span>
+              <span><small>Kenali lembaga</small><strong>Struktur DPM</strong></span>
+            </a>
+          </nav>
+        </div>
       </section>
 
       <section class="section youtube-section" id="video" hidden>
@@ -139,7 +161,7 @@
               <p class="eyebrow" data-content-key="homepage.youtube.eyebrow">Dokumentasi DPM KM UNNES</p>
               <h3 data-content-key="homepage.youtube.title">Ruang informasi dan dokumentasi kegiatan.</h3>
               <p data-content-key="homepage.youtube.description">Area video DPM KM UNNES siap menampilkan dokumentasi. Tautan kanal resmi belum ditambahkan.</p>
-              <a class="read-link youtube-watch-link" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Tonton di YouTube <span aria-hidden="true">↗</span></a>
+              <a class="read-link youtube-watch-link" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" hidden>Tonton di YouTube</a>
               <span class="video-placeholder-note" data-content-key="homepage.youtube.placeholderNote">Pemutar video dapat dihubungkan setelah video pilihan ditentukan.</span>
             </div>
           </div>
@@ -153,7 +175,7 @@
               <p class="eyebrow">Berita terbaru</p>
               <h2 id="monthly-news-title">Sorotan bulan ini</h2>
             </div>
-            <a class="text-link" href="news.html">Lihat semua arsip <span>→</span></a>
+            <a class="text-link" href="news.html">Lihat semua arsip</a>
           </div>
           <p class="monthly-news-note">Berita terbaru ditampilkan berdasarkan bulan publikasi dan juga tersedia di halaman Pengarsipan.</p>
           <p class="news-search-message" aria-live="polite" hidden></p>
@@ -167,7 +189,7 @@
             <p class="eyebrow">Transparansi dalam proses</p>
             <h2>Dokumen legislasi</h2>
             <p>Telusuri peraturan Keluarga Mahasiswa UNNES dan dokumen resmi yang tersedia.</p>
-            <a class="button button-dark" href="legislation.html">Lihat Undang-Undang <span aria-hidden="true">→</span></a>
+            <a class="button button-dark" href="legislation.html">Lihat Undang-Undang</a>
           </div>
           <div class="bill-list" id="all-bills"><p class="archive-empty">Dokumen legislasi dimuat dari basis data.</p></div>
         </div>
@@ -180,8 +202,8 @@
             <h2 data-content-key="homepage.quotes.sectionTitle">DPM KM UNNES<br />Bicara</h2>
             <p data-content-key="homepage.quotes.sectionDescription">Pandangan dan percakapan tentang masa depan Indonesia.</p>
             <div class="talks-controls">
-              <button type="button" class="talk-prev" aria-label="Kutipan sebelumnya">←</button>
-              <button type="button" class="talk-next" aria-label="Kutipan berikutnya">→</button>
+              <button type="button" class="talk-prev" aria-label="Kutipan sebelumnya">Sebelumnya</button>
+              <button type="button" class="talk-next" aria-label="Kutipan berikutnya">Berikutnya</button>
             </div>
           </div>
           <div class="quote-card" aria-live="polite">
@@ -207,13 +229,13 @@
           </div>
           <div class="services-grid">
             <a class="service-card service-accent" id="aspirations" href="legislation.html">
-              <span class="service-symbol" aria-hidden="true">◎</span><small>Informasi legislasi</small><strong>Undang-Undang</strong><span class="service-arrow">↗</span>
+              <span class="service-symbol" aria-hidden="true">◎</span><small>Informasi legislasi</small><strong>Undang-Undang</strong>
             </a>
             <a class="service-card service-navy" id="visit" href="about.html">
-              <span class="service-symbol" aria-hidden="true">⌂</span><small>Kenali lembaga</small><strong>Struktur DPM KM UNNES</strong><span class="service-arrow">↗</span>
+              <span class="service-symbol" aria-hidden="true">⌂</span><small>Kenali lembaga</small><strong>Struktur DPM KM UNNES</strong>
             </a>
             <a class="service-card service-ink" id="open-data" href="news.html">
-              <span class="service-symbol" aria-hidden="true">▤</span><small>Dokumen &amp; berita</small><strong>Pengarsipan</strong><span class="service-arrow">↗</span>
+              <span class="service-symbol" aria-hidden="true">▤</span><small>Dokumen &amp; berita</small><strong>Pengarsipan</strong>
             </a>
           </div>
         </div>
@@ -260,7 +282,7 @@
             <label class="form-consent"><input type="checkbox" name="consent" value="true" required /><span>Saya setuju aspirasi dan data saya disimpan untuk ditindaklanjuti oleh DPM KM UNNES. Kiriman tidak ditampilkan kepada publik.</span></label>
             <p class="form-status" id="aspiration-form-status" role="status" aria-live="polite"></p>
             <div class="aspiration-submit">
-              <button class="button button-dark" type="submit">Kirim aspirasi <span aria-hidden="true">→</span></button>
+              <button class="button button-dark" type="submit">Kirim aspirasi</button>
               <small>Aspirasi hanya dapat diakses pengelola yang berwenang.</small>
             </div>
           </form>
@@ -283,6 +305,6 @@
       </div>
       <div class="container footer-bottom"><span>© 2026 Dewan Perwakilan Mahasiswa Universitas Negeri Semarang</span><span>Transparansi · Representasi · Pelayanan</span></div>
     </footer>
-    <button class="back-to-top" type="button" aria-label="Kembali ke atas">↑</button>
+    <button class="back-to-top" type="button" aria-label="Kembali ke atas">Atas</button>
   </body>
 </html>

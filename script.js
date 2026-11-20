@@ -231,11 +231,6 @@ function applySiteContent(content) {
 
   if (heroSlides.length) stories = heroSlides;
   quotes = homepageQuotes;
-  document.dispatchEvent(
-    new CustomEvent("site-content-loaded", {
-      detail: { heroSlides: stories, quotes },
-    }),
-  );
 
   renderLegislationContent(content.legislation);
   renderActivityContent(content.activities);
@@ -281,6 +276,11 @@ function applySiteContent(content) {
     console.error("Tautan video YouTube di konten situs tidak valid.");
   }
   if (!videoId && videoSection) videoSection.hidden = true;
+  document.dispatchEvent(
+    new CustomEvent("site-content-loaded", {
+      detail: { heroSlides: stories, quotes },
+    }),
+  );
 }
 
 fetch("/api/content")
@@ -669,7 +669,6 @@ function renderLegislationContent(content) {
         <span class="bill-index">${String(index + 1).padStart(2, "0")}</span>
         <span class="bill-main"><small>${escapeHtml(bill.label || "Informasi legislasi")}</small><strong>${escapeHtml(bill.title)}</strong>${bill.description ? `<span class="bill-detail">${escapeHtml(bill.description)}</span>` : ""}</span>
         <span class="bill-status${statusType}"><i></i> ${escapeHtml(bill.status || "Belum ditentukan")}</span>
-        <b class="bill-arrow">↗</b>
       </a>`;
     })
     .filter(Boolean)
@@ -958,7 +957,7 @@ function renderActivityContent(content) {
             return `<article class="oversight-card">
               <div class="oversight-index">${String(index + 1).padStart(2, "0")}</div>
               <div class="oversight-main"><p class="eyebrow">${escapeHtml(item.label || "Laporan pengawasan DPM KM UNNES")}</p><h3>${escapeHtml(item.title || "")}</h3><p>${escapeHtml(item.description || "")}</p></div>
-              <div class="oversight-status"><span>${escapeHtml(item.status || "")}</span>${fileUrl ? `<a href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Buka laporan <b aria-hidden="true">↗</b></a>` : ""}</div>
+              <div class="oversight-status"><span>${escapeHtml(item.status || "")}</span>${fileUrl ? `<a href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">Buka laporan</a>` : ""}</div>
             </article>`;
           })
           .join("")
@@ -1023,7 +1022,7 @@ function renderArchiveCard(item) {
         <p class="archive-card-meta"><span>${label}</span><time${isValidArchiveDate(item.date) ? ` datetime="${escapeHtml(item.date)}"` : ""}>${dateText}</time></p>
         <h3><button class="news-detail-title news-detail-trigger" type="button" data-news-id="${id}">${title}</button></h3>
         <p class="archive-card-description">${description}</p>
-        <div class="archive-card-footer">${sampleBadge}<button class="news-detail-link news-detail-trigger" type="button" data-news-id="${id}">Baca berita <span aria-hidden="true">→</span></button></div>
+        <div class="archive-card-footer">${sampleBadge}<button class="news-detail-link news-detail-trigger" type="button" data-news-id="${id}">Baca berita</button></div>
       </div>
     </article>`;
   }
@@ -1035,7 +1034,7 @@ function renderArchiveCard(item) {
         <p class="archive-card-meta"><span>${label}</span><time${isValidArchiveDate(item.date) ? ` datetime="${escapeHtml(item.date)}"` : ""}>${dateText}</time></p>
         <h3>${title}</h3>
         <p class="archive-card-description">${description}</p>
-        <div class="archive-card-footer">${sampleBadge}<a href="${imageUrl}" target="_blank" rel="noopener noreferrer">Lihat gambar <span aria-hidden="true">↗</span></a></div>
+        <div class="archive-card-footer">${sampleBadge}<a href="${imageUrl}" target="_blank" rel="noopener noreferrer">Lihat gambar</a></div>
       </div>
     </article>`;
   }
@@ -1049,7 +1048,7 @@ function renderArchiveCard(item) {
       <p class="archive-card-meta"><span>${label}</span><time${isValidArchiveDate(item.date) ? ` datetime="${escapeHtml(item.date)}"` : ""}>${dateText}</time></p>
       <h3>${title}</h3>
       <p class="archive-card-description">${description}</p>
-      <div class="archive-card-footer">${sampleBadge}<a href="${escapeHtml(fileUrl)}" download>Unduh ${format} <span aria-hidden="true">↓</span></a></div>
+      <div class="archive-card-footer">${sampleBadge}<a href="${escapeHtml(fileUrl)}" download>Unduh ${format}</a></div>
     </div>
   </article>`;
   }
@@ -1098,7 +1097,7 @@ function renderArchiveContent() {
             <p class="news-meta"><span>${label}</span><time datetime="${escapeHtml(item.date)}">${escapeHtml(date)}</time></p>
             <h3><button class="news-detail-title news-detail-trigger" type="button" data-news-id="${id}">${title}</button></h3>
             <p>${description}</p>
-            <button class="read-link news-detail-trigger" type="button" data-news-id="${id}">Baca berita <span>→</span></button>
+            <button class="read-link news-detail-trigger" type="button" data-news-id="${id}">Baca berita</button>
           </div>
         </article>`;
       })
@@ -1205,7 +1204,7 @@ if (aspirationForm) {
           : error.message;
     } finally {
       submitButton.disabled = false;
-      submitButton.innerHTML = 'Kirim aspirasi <span aria-hidden="true">→</span>';
+      submitButton.textContent = "Kirim aspirasi";
     }
   });
 }
@@ -1570,6 +1569,109 @@ window.addEventListener(
 );
 updateScrollProgress();
 
+const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+const motionRevealSelector = [
+  ".section-heading",
+  ".page-hero .container",
+  ".news-card",
+  ".archive-card",
+  ".quick-link",
+  ".service-card",
+  ".activity-card",
+  ".oversight-card",
+  ".activity-gallery figure",
+  ".person-card",
+  ".org-profile-card",
+  ".law-document",
+  ".budget-document-frame",
+  ".org-chart",
+  ".quote-card",
+  ".video-feature",
+  ".aspiration-layout",
+  ".aspiration-promise",
+  ".contact-layout",
+  ".about-band-inner",
+  ".process-grid article",
+  ".status-table-wrap",
+  ".bill-row",
+  ".pillar-card",
+  ".page-link-grid a",
+  ".archive-overview > .container",
+  ".archive-category-nav button",
+  ".law-toc",
+  ".form-field",
+  ".footer-brand",
+  ".footer-column",
+  ".footer-address",
+].join(", ");
+const motionHoverSelector = [
+  ".archive-card",
+  ".news-card",
+  ".person-card",
+  ".org-profile-card",
+  ".activity-card",
+  ".oversight-card",
+  ".activity-gallery figure",
+  ".service-card",
+  ".quick-link",
+  ".bill-row",
+  ".page-link-grid a",
+  ".quote-card",
+  ".video-feature",
+  ".law-document",
+  ".budget-document-frame",
+  ".process-grid article",
+  ".pillar-card",
+  ".org-node",
+  ".archive-category-nav button",
+  ".law-toc button",
+].join(", ");
+const boundMotionHoverTargets = new WeakSet();
+
+function collectMotionTargets(scope, selector) {
+  const targets = [...scope.querySelectorAll(selector)];
+  if (scope instanceof Element && scope.matches(selector)) targets.unshift(scope);
+  return targets;
+}
+
+function registerMotionRevealTargets(scope = document) {
+  if (!revealObserver || reducedMotionPreference.matches) return;
+  collectMotionTargets(scope, motionRevealSelector).forEach((item, index) => {
+    if (!item.classList.contains("motion-reveal")) {
+      item.classList.add("motion-reveal");
+      item.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 45}ms`);
+    }
+    if (!item.classList.contains("is-visible") && !item.closest("[hidden]")) {
+      revealObserver.observe(item);
+    }
+  });
+}
+
+function registerMotionHoverTargets(scope = document) {
+  if (reducedMotionPreference.matches || !supportsFinePointer.matches) return;
+  collectMotionTargets(scope, motionHoverSelector).forEach((item) => {
+    if (boundMotionHoverTargets.has(item)) return;
+    boundMotionHoverTargets.add(item);
+    item.classList.add("motion-hover");
+    item.addEventListener("pointermove", (event) => {
+      const bounds = item.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      const x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+      const y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
+      item.style.setProperty("--pointer-x", `${(x * 100).toFixed(1)}%`);
+      item.style.setProperty("--pointer-y", `${(y * 100).toFixed(1)}%`);
+      item.style.setProperty("--motion-rotate-x", `${((0.5 - y) * 5).toFixed(2)}deg`);
+      item.style.setProperty("--motion-rotate-y", `${((x - 0.5) * 5).toFixed(2)}deg`);
+    });
+    item.addEventListener("pointerleave", () => {
+      item.style.setProperty("--pointer-x", "50%");
+      item.style.setProperty("--pointer-y", "50%");
+      item.style.setProperty("--motion-rotate-x", "0deg");
+      item.style.setProperty("--motion-rotate-y", "0deg");
+    });
+  });
+}
+
 if ("IntersectionObserver" in window && !reducedMotionPreference.matches) {
   revealObserver = new IntersectionObserver(
     (entries, observer) => {
@@ -1581,50 +1683,51 @@ if ("IntersectionObserver" in window && !reducedMotionPreference.matches) {
     },
     { threshold: 0.12, rootMargin: "0px 0px -35px 0px" },
   );
-
-  const revealTargets = document.querySelectorAll(
-    ".section-heading, .news-card, .service-card, .activity-card, .oversight-card, .activity-gallery figure, .person-card, .law-document, .budget-document-frame, .org-chart, .quote-card, .video-feature, .aspiration-layout, .contact-layout, .about-band-inner, .archive-card, .process-grid article, .status-table-wrap",
-  );
-  revealTargets.forEach((item, index) => {
-    item.classList.add("motion-reveal");
-    item.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 45}ms`);
-    revealObserver.observe(item);
-  });
   rootElement.classList.add("motion-enabled");
+  registerMotionRevealTargets();
 }
 
-const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
-if (!reducedMotionPreference.matches && supportsFinePointer.matches) {
-  const hoverTargets = document.querySelectorAll(
-    ".archive-card, .person-card, .activity-card, .oversight-card, .activity-gallery figure, .service-card, .quote-card, .video-feature, .law-document, .budget-document-frame, .process-grid article, .pillar-card",
-  );
-  hoverTargets.forEach((item) => {
-    item.classList.add("motion-hover");
-    item.addEventListener("pointermove", (event) => {
-      const bounds = item.getBoundingClientRect();
-      const x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
-      const y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
-      item.style.setProperty("--pointer-x", `${(x * 100).toFixed(1)}%`);
-      item.style.setProperty("--pointer-y", `${(y * 100).toFixed(1)}%`);
+registerMotionHoverTargets();
+document.addEventListener("site-content-loaded", () => {
+  registerMotionRevealTargets();
+  registerMotionHoverTargets();
+});
+
+if ("MutationObserver" in window && document.body) {
+  const pendingMotionRoots = new Set();
+  let motionRegistrationPending = false;
+  const motionMutationObserver = new MutationObserver((records) => {
+    records.forEach((record) => {
+      record.addedNodes.forEach((node) => {
+        if (node instanceof Element) pendingMotionRoots.add(node);
+      });
     });
-    item.addEventListener("pointerleave", () => {
-      item.style.setProperty("--pointer-x", "50%");
-      item.style.setProperty("--pointer-y", "50%");
+    if (!pendingMotionRoots.size || motionRegistrationPending) return;
+    motionRegistrationPending = true;
+    window.requestAnimationFrame(() => {
+      motionRegistrationPending = false;
+      const roots = [...pendingMotionRoots];
+      pendingMotionRoots.clear();
+      roots.forEach((root) => {
+        registerMotionRevealTargets(root);
+        registerMotionHoverTargets(root);
+      });
     });
   });
+  motionMutationObserver.observe(document.body, { childList: true, subtree: true });
+}
 
-  const hero = document.querySelector(".hero");
-  if (hero) {
-    hero.addEventListener("pointermove", (event) => {
-      const bounds = hero.getBoundingClientRect();
-      const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-      const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-      hero.style.setProperty("--hero-pointer-x", `${(x * -4).toFixed(2)}px`);
-      hero.style.setProperty("--hero-pointer-y", `${(y * -3).toFixed(2)}px`);
-    });
-    hero.addEventListener("pointerleave", () => {
-      hero.style.setProperty("--hero-pointer-x", "0px");
-      hero.style.setProperty("--hero-pointer-y", "0px");
-    });
-  }
+const heroMotionTarget = document.querySelector(".hero");
+if (heroMotionTarget && !reducedMotionPreference.matches && supportsFinePointer.matches) {
+  heroMotionTarget.addEventListener("pointermove", (event) => {
+    const bounds = heroMotionTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    heroMotionTarget.style.setProperty("--hero-pointer-x", `${(x * -4).toFixed(2)}px`);
+    heroMotionTarget.style.setProperty("--hero-pointer-y", `${(y * -3).toFixed(2)}px`);
+  });
+  heroMotionTarget.addEventListener("pointerleave", () => {
+    heroMotionTarget.style.setProperty("--hero-pointer-x", "0px");
+    heroMotionTarget.style.setProperty("--hero-pointer-y", "0px");
+  });
 }

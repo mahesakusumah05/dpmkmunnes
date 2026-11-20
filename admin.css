@@ -337,3 +337,44 @@ select:focus {
   .admin-tab:hover,
   .button:hover:not(:disabled) { transform: none; }
 }
+
+@keyframes admin-screen-enter {
+  from { opacity: 0; transform: translateY(14px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes admin-item-enter {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-header { animation: admin-screen-enter .48s cubic-bezier(.16,1,.3,1) both; }
+.login-panel:not([hidden]) { animation: admin-screen-enter .58s cubic-bezier(.16,1,.3,1) both; }
+.dashboard-heading { animation: admin-screen-enter .58s cubic-bezier(.16,1,.3,1) both; }
+.dashboard-panel:not([hidden]) { animation: admin-screen-enter .42s cubic-bezier(.16,1,.3,1) both; }
+.admin-tabs { animation: admin-item-enter .42s .08s both; }
+.dashboard-notice { animation: admin-item-enter .42s .16s both; }
+.news-item,
+.content-form-section,
+.content-item-card { animation: admin-item-enter .38s cubic-bezier(.16,1,.3,1) both; }
+.news-item:nth-child(2),
+.content-form-section:nth-child(2),
+.content-item-card:nth-child(2) { animation-delay: 45ms; }
+.news-item:nth-child(3),
+.content-form-section:nth-child(3),
+.content-item-card:nth-child(3) { animation-delay: 90ms; }
+.news-item:nth-child(4),
+.content-form-section:nth-child(4),
+.content-item-card:nth-child(4) { animation-delay: 135ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-header,
+  .login-panel:not([hidden]),
+  .dashboard-heading,
+  .dashboard-panel:not([hidden]),
+  .admin-tabs,
+  .dashboard-notice,
+  .news-item,
+  .content-form-section,
+  .content-item-card { animation: none !important; }
+}
