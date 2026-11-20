@@ -1,3 +1,55 @@
+(() => {
+  const splash = document.querySelector("#intro-splash");
+  if (!splash) return;
+
+  if (document.documentElement.classList.contains("intro-splash-seen")) {
+    splash.remove();
+    return;
+  }
+
+  const skipButton = splash.querySelector(".intro-splash-skip");
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fadeDuration = prefersReducedMotion ? 0 : 900;
+  const backgroundElements = Array.from(document.body.children)
+    .filter((element) => element !== splash)
+    .map((element) => ({ element, wasInert: element.inert }));
+  backgroundElements.forEach(({ element }) => {
+    element.inert = true;
+  });
+  document.body.classList.add("intro-splash-active");
+  skipButton?.focus({ preventScroll: true });
+
+  let isClosing = false;
+  let exitTimer;
+  const closeSplash = () => {
+    if (isClosing) return;
+    isClosing = true;
+    window.clearTimeout(exitTimer);
+    const shouldRestoreFocus = document.activeElement === skipButton;
+    splash.classList.add("is-leaving");
+
+    window.setTimeout(() => {
+      splash.remove();
+      document.body.classList.remove("intro-splash-active");
+      backgroundElements.forEach(({ element, wasInert }) => {
+        element.inert = wasInert;
+      });
+      document.documentElement.classList.add("intro-splash-seen");
+      try {
+        window.sessionStorage.setItem("dpm-km-unnes-intro-seen", "1");
+      } catch (error) {
+        console.warn("Status layar pembuka tidak dapat disimpan untuk sesi ini.", error);
+      }
+      if (shouldRestoreFocus) {
+        document.querySelector(".skip-link")?.focus({ preventScroll: true });
+      }
+    }, fadeDuration);
+  };
+
+  skipButton?.addEventListener("click", closeSplash);
+  exitTimer = window.setTimeout(closeSplash, prefersReducedMotion ? 10_000 : 9100);
+})();
+
 let stories = [
   {
     title: "Suara Mahasiswa,\nArah Perubahan.",
