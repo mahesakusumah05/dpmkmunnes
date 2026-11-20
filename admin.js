@@ -698,7 +698,7 @@ function renderOrganizationEditor(content) {
   makeRepeater(structuredEditor, {
     key: "organization-profiles",
     title: "Profil pengurus",
-    description: "Setiap profil menampilkan foto, nama, dan jabatan pada halaman Struktur. Foto harus memakai URL HTTPS atau path gambar lokal yang tersedia.",
+    description: "Setiap profil menampilkan foto, nama, jabatan, fakultas, program studi, dan angkatan pada halaman Struktur. Foto harus memakai URL HTTPS atau path gambar lokal yang tersedia.",
     itemLabel: "Profil",
     addLabel: "Tambah profil",
     limit: 100,
@@ -717,6 +717,9 @@ function renderOrganizationEditor(content) {
       },
       { field: "name", label: "Nama", maxLength: 120, required: true },
       { field: "position", label: "Jabatan", maxLength: 160, required: true },
+      { field: "faculty", label: "Fakultas", maxLength: 160, required: true },
+      { field: "studyProgram", label: "Program studi", maxLength: 160, required: true },
+      { field: "cohort", label: "Angkatan", maxLength: 20, required: true, placeholder: "Contoh: 2024" },
       { field: "photoAlt", label: "Teks alternatif foto", maxLength: 300, wide: true },
     ],
   });
@@ -1048,6 +1051,9 @@ function collectStructuredContent(section) {
       { name: "photo", label: "Foto profil" },
       { name: "name", label: "Nama" },
       { name: "position", label: "Jabatan" },
+      { name: "faculty", label: "Fakultas" },
+      { name: "studyProgram", label: "Program studi" },
+      { name: "cohort", label: "Angkatan" },
     ]);
     content.profiles.forEach((profile, index) => {
       if (!safeEditorImageUrl(profile.photo)) {

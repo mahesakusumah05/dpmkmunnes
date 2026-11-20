@@ -191,13 +191,36 @@ function renderOrganizationProfiles(profiles) {
     const details = document.createElement("div");
     details.className = "org-profile-details";
 
+    const position = document.createElement("p");
+    position.className = "org-profile-position";
+    position.textContent = profile.position.trim().slice(0, 160);
+
     const name = document.createElement("h3");
     name.textContent = profile.name.trim().slice(0, 120);
 
-    const position = document.createElement("p");
-    position.textContent = profile.position.trim().slice(0, 160);
+    const metadata = document.createElement("dl");
+    metadata.className = "org-profile-meta";
+    [
+      ["Fakultas", profile.faculty],
+      ["Program studi", profile.studyProgram],
+      ["Angkatan", profile.cohort],
+    ].forEach(([label, value]) => {
+      const row = document.createElement("div");
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      const text =
+        typeof value === "string"
+          ? value.trim()
+          : typeof value === "number" && Number.isFinite(value)
+            ? String(value)
+            : "";
+      term.textContent = label;
+      description.textContent = text ? text.slice(0, 160) : "Belum diisi";
+      row.append(term, description);
+      metadata.append(row);
+    });
 
-    details.append(name, position);
+    details.append(position, name, metadata);
     card.append(photo, details);
     grid.append(card);
   });
@@ -1382,11 +1405,12 @@ if (heroTitle && heroDescription && heroImageLayers.length && slideCurrent) {
 const quoteText = document.querySelector("#quote-text");
 const quoteAuthor = document.querySelector("#quote-author");
 const quoteRole = document.querySelector("#quote-role");
+const quoteAvatar = document.querySelector(".author-avatar");
 const quoteProgress = document.querySelector(".quote-progress span");
 const quoteCard = document.querySelector(".quote-card");
 const talksSection = document.querySelector(".talks-section");
 
-if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
+if (quoteText && quoteAuthor && quoteRole && quoteAvatar && quoteProgress && quoteCard) {
   const quoteDelay = 7000;
   const reducedMotionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
   let quoteTimer = null;
@@ -1394,6 +1418,15 @@ if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
   let quoteFocused = false;
 
   quoteCard.style.setProperty("--quote-duration", `${quoteDelay}ms`);
+
+  function getAuthorInitials(author) {
+    const words = author.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return "";
+    const firstWord = Array.from(words[0]);
+    if (words.length === 1) return firstWord.slice(0, 2).join("").toLocaleUpperCase("id-ID");
+    const lastWord = Array.from(words[words.length - 1]);
+    return `${firstWord[0]}${lastWord[0]}`.toLocaleUpperCase("id-ID");
+  }
 
   function stopQuoteTimer() {
     if (quoteTimer !== null) {
@@ -1424,6 +1457,7 @@ if (quoteText && quoteAuthor && quoteRole && quoteProgress && quoteCard) {
     void quoteCard.offsetWidth;
     quoteText.textContent = quote.text;
     quoteAuthor.textContent = quote.author;
+    quoteAvatar.textContent = getAuthorInitials(quote.author);
     quoteRole.textContent = quote.role;
     quoteCard.classList.add("quote-changing");
     quoteProgress.classList.add("is-running");
